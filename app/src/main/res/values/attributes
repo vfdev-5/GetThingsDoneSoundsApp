@@ -1,0 +1,5 @@
+<resources>
+    <declare-styleable name="WaveformView">
+        <attr name="progressColor" format="color"/>
+    </declare-styleable>
+</resources>
