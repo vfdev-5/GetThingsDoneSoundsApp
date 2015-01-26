@@ -1,7 +1,6 @@
 package com.vfdev.getworkdonemusicapp;
 
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
@@ -16,8 +15,11 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.util.Log;
+import android.view.View;
 
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
@@ -67,6 +69,8 @@ public class MusicService extends Service
     }
     private boolean hasAudiofocus=false;
     private State mState = State.Stopped;
+    // Full state (key-value map) contains (keys) :
+    // TrackTitle (String), TrackDuration (Integer), HasPrevTrack (Boolean), IsPlaying (Boolean)
     private Bundle mFullState;
 
 
@@ -89,13 +93,17 @@ public class MusicService extends Service
     private DownloadTrackInfo mDownloadTrackInfo;
     private DownloadTrackIds mDownloadTrackIds;
 
+    // ImageLoader onLoadingComplete Callback instance
+    _SimpleImageLoadingListener mLoadingListener;
+    Bitmap mCurrentWaveform;
+
 
     // -------- Service methods
 
     @Override
     public void onCreate() {
 //        Log.i(TAG, "Creating service");
-        Timber.v(TAG + " : " + "Creating service");
+        Timber.v("Creating service");
 
 //        mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         mServiceIcon = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
@@ -133,6 +141,14 @@ public class MusicService extends Service
 
         mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
 
+
+        // Image loader
+        // Create global configuration and initialize ImageLoader with this config
+        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this)
+                .build();
+        ImageLoader.getInstance().init(config);
+        mLoadingListener = new _SimpleImageLoadingListener();
+
         showNotification(getString(R.string.no_tracks));
     }
 
@@ -144,7 +160,7 @@ public class MusicService extends Service
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 //        Log.i(TAG, "onStartCommand");
-        Timber.v(TAG + " : " + "onStartCommand");
+        Timber.v("onStartCommand");
 
         retrieveTrackIds();
         return START_NOT_STICKY; // Don't automatically restart this Service if it is killed
@@ -155,7 +171,7 @@ public class MusicService extends Service
     public void onDestroy() {
         // Service is being killed, so make sure we release our resources
 //        Log.i(TAG, "Destroy music service");
-        Timber.v(TAG + " : " + "Destroy music service");
+        Timber.v("Destroy music service");
 
         mState = State.Stopped;
         releaseResources();
@@ -164,7 +180,7 @@ public class MusicService extends Service
     @Override
     public IBinder onBind(Intent arg0) {
 //        Log.i(TAG, "onBind");
-        Timber.v(TAG + " : " + "onBind");
+        Timber.v("onBind");
 
         return mBinder;
     }
@@ -172,7 +188,7 @@ public class MusicService extends Service
     @Override
     public boolean onUnbind(Intent intent) {
 //        Log.i(TAG, "onUnbind");
-        Timber.v(TAG + " : " + "onUnbind");
+        Timber.v("onUnbind");
 
         mCallbacks = null;
         return true;
@@ -183,7 +199,7 @@ public class MusicService extends Service
 
     public void onCompletion(MediaPlayer player) {
 //        Log.i(TAG, "onCompletion MediaPlayer");
-        Timber.v(TAG + " : " + "onCompletion MediaPlayer");
+        Timber.v("onCompletion MediaPlayer");
 
         // The media player finished playing the current Track, so we go ahead and start the next.
         playNextTrack();
@@ -191,7 +207,7 @@ public class MusicService extends Service
 
     public void onPrepared(MediaPlayer player) {
 //        Log.i(TAG, "onPrepared MediaPlayer");
-        Timber.v(TAG + " : " + "onPrepared MediaPlayer");
+        Timber.v("onPrepared MediaPlayer");
 
         // The media player is done preparing. That means we can start playing!
         mState = State.Playing;
@@ -213,7 +229,7 @@ public class MusicService extends Service
         // Player should not start
         if (hasAudiofocus) {
 //            Log.i(TAG, "Has audio focus. Start playing");
-            Timber.v(TAG + " : " + "Has audio focus. Start playing");
+            Timber.v("Has audio focus. Start playing");
 
             if (mCallbacks != null) {
                 mCallbacks.onMediaPlayerStarted();
@@ -221,14 +237,14 @@ public class MusicService extends Service
             player.start();
         } else {
 //            Log.i(TAG, "Has no audio focus. Do not start");
-            Timber.v(TAG + " : " + "Has no audio focus. Do not start");
+            Timber.v("Has no audio focus. Do not start");
 
         }
     }
 
     public boolean onError(MediaPlayer mp, int what, int extra) {
 //        Log.e(TAG, "Error: what=" + String.valueOf(what) + ", extra=" + String.valueOf(extra));
-        Timber.i(TAG + " : " + "what=" + String.valueOf(what) + ", extra=" + String.valueOf(extra));
+        Timber.i("what=" + String.valueOf(what) + ", extra=" + String.valueOf(extra));
 
         mState = State.Stopped;
         return true; // true indicates we handled the error
@@ -246,11 +262,11 @@ public class MusicService extends Service
     @Override
     public void onAudioFocusChange(int focusChange) {
 //        Log.i(TAG, "onAudioFocusChange");
-        Timber.v(TAG + " : " + "onAudioFocusChange");
+        Timber.v("onAudioFocusChange");
 
         if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
 //            Log.i(TAG, "AUDIOFOCUS_LOSS_TRANSIENT");
-            Timber.v(TAG + " : " + "AUDIOFOCUS_LOSS_TRANSIENT");
+            Timber.v("AUDIOFOCUS_LOSS_TRANSIENT");
 
             hasAudiofocus=false;
             // Pause playback
@@ -260,7 +276,7 @@ public class MusicService extends Service
             }
         } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
 //            Log.i(TAG, "AUDIOFOCUS_GAIN");
-            Timber.v(TAG + " : " + "AUDIOFOCUS_GAIN");
+            Timber.v("AUDIOFOCUS_GAIN");
 
             // Resume playback
             hasAudiofocus=true;
@@ -271,7 +287,7 @@ public class MusicService extends Service
             }
         } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
 //            Log.i(TAG, "AUDIOFOCUS_LOSS");
-            Timber.v(TAG + " : " + "AUDIOFOCUS_LOSS");
+            Timber.v("AUDIOFOCUS_LOSS");
 
             // Audio focus loss is permanent
             releaseAudioFocus();
@@ -283,6 +299,7 @@ public class MusicService extends Service
         public void onDownloadTrackIdsPostExecute(Bundle result);
         public void onDownloadTrackIdsStarted();
         public void onDownloadTrackInfoPostExecute(Bundle result);
+        public void onWaveformLoaded(Bitmap waveform);
 
         public void onMediaPlayerPrepared(Bundle result);
         public void onMediaPlayerStarted();
@@ -299,7 +316,7 @@ public class MusicService extends Service
             Bundle result = new Bundle();
             for (String style : mStyles) {
 //                Log.i(TAG, "DownloadTrackIds : request track of genre : " + style);
-                Timber.v(TAG + " : " + "DownloadTrackIds : request track of genre : " + style);
+                Timber.v("DownloadTrackIds : request track of genre : " + style);
 
                 String requestUrl = REQUEST_TRACKS_URL;
                 requestUrl += style;
@@ -318,7 +335,7 @@ public class MusicService extends Service
                         // Parse the response:
                         JSONArray tracksJSON = new JSONArray(responseStr);
 //                        Log.i(TAG, "getTracksInBackground : found " + tracksJSON.length() + " tracks");
-                        Timber.v(TAG + " : " + "getTracksInBackground : found " + tracksJSON.length() + " tracks");
+                        Timber.v("getTracksInBackground : found " + tracksJSON.length() + " tracks");
 
                         for (int i = 0; i < tracksJSON.length(); i++) {
                             JSONObject trackJSON = tracksJSON.getJSONObject(i);
@@ -329,7 +346,7 @@ public class MusicService extends Service
                         }
                     } else {
 //                        Log.e(TAG, "getTracksInBackground : request error : " + responseStr);
-                        Timber.e(TAG + " : " + "getTracksInBackground : request error : " + responseStr);
+                        Timber.e("getTracksInBackground : request error : " + responseStr);
 
                         result.putBoolean("Result", false);
                         result.putString("Message", getString(R.string.app_err));
@@ -338,14 +355,14 @@ public class MusicService extends Service
                 } catch (IOException e) {
 //                    e.printStackTrace();
 //                    Log.e(TAG, "getTracksInBackground : SoundCloud get request error : " + e.getMessage());
-                    Timber.i(e, TAG + " : " + "getTracksInBackground : SoundCloud get request error : " + e.getMessage());
+                    Timber.i(e, "getTracksInBackground : SoundCloud get request error : " + e.getMessage());
                     result.putBoolean("Result", false);
                     result.putString("Message", getString(R.string.connx_err));
                     return result;
                 } catch (JSONException e) {
 //                    e.printStackTrace();
 //                    Log.e(TAG, "getTracksInBackground : JSON parse error : " + e.getMessage());
-                    Timber.e(e, TAG + " : " + "getTracksInBackground : JSON parse error : " + e.getMessage());
+                    Timber.e(e, "getTracksInBackground : JSON parse error : " + e.getMessage());
                     result.putBoolean("Result", false);
                     result.putString("Message", getString(R.string.app_err));
                     return result;
@@ -384,14 +401,14 @@ public class MusicService extends Service
                     result.putString("JSONResult", responseStr);
                 } else {
 //                    Log.e(TAG, "DownloadTrackInfo : request error : " + responseStr);
-                    Timber.e(TAG + " : " + "DownloadTrackInfo : request error : " + responseStr);
+                    Timber.e("DownloadTrackInfo : request error : " + responseStr);
                     result.putBoolean("Result", false);
                     result.putString("Message", getString(R.string.app_err));
                 }
             } catch (IOException e) {
 //                e.printStackTrace();
 //                Log.e(TAG, "DownloadTrackInfo : request error : " + e.getMessage());
-                Timber.i(e, TAG + " : " + "DownloadTrackInfo : request error : " + e.getMessage());
+                Timber.i(e, "DownloadTrackInfo : request error : " + e.getMessage());
                 result.putBoolean("Result", false);
                 result.putString("Message", getString(R.string.connx_err));
             }
@@ -422,7 +439,10 @@ public class MusicService extends Service
                 // get title:
                 mFullState.putString("TrackTitle", trackJSON.getString("title"));
                 // get waveform:
-                mFullState.putString("TrackWaveformUrl", trackJSON.getString("waveform_url"));
+                String waveform_url=trackJSON.getString("waveform_url");
+//                mFullState.putString("TrackWaveformUrl", trackJSON.getString("waveform_url"));
+                mCurrentWaveform=null;
+                ImageLoader.getInstance().loadImage(waveform_url, mLoadingListener);
 
                 if (mCallbacks != null) {
                     mCallbacks.onDownloadTrackInfoPostExecute(mFullState);
@@ -431,7 +451,7 @@ public class MusicService extends Service
             } catch (IOException e) {
 //                e.printStackTrace();
 //                Log.e(TAG, "DownloadTrackInfo : onPostExecute : request error : " + e.getMessage());
-                Timber.e(e, TAG + " : " + "DownloadTrackInfo : onPostExecute : request error : " + e.getMessage());
+                Timber.e(e, "DownloadTrackInfo : onPostExecute : request error : " + e.getMessage());
                 if (mCallbacks != null) {
                     mCallbacks.onShowErrorMessage(getString(R.string.app_err));
                 }
@@ -440,7 +460,7 @@ public class MusicService extends Service
             } catch (JSONException e) {
 //                e.printStackTrace();
 //                Log.e(TAG, "DownloadTrackInfo : onPostExecute : JSON parse error : " + e.getMessage());
-                Timber.e(e, TAG + " : " + "DownloadTrackInfo : onPostExecute : JSON parse error : " + e.getMessage());
+                Timber.e(e, "DownloadTrackInfo : onPostExecute : JSON parse error : " + e.getMessage());
 
                 if (mCallbacks != null) {
                     mCallbacks.onShowErrorMessage(getString(R.string.app_err));
@@ -451,13 +471,26 @@ public class MusicService extends Service
         }
     }
 
+    // ----------- ImageLoader onLoadingComplete listener
+    private class _SimpleImageLoadingListener extends SimpleImageLoadingListener {
+        @Override
+        public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
+            // Do whatever you want with Bitmap
+            mCurrentWaveform = loadedImage;
+//            mFullState.putParcelable("TrackWaveform", loadedImage);
+            if (mCallbacks != null) {
+                mCallbacks.onWaveformLoaded(loadedImage);
+            }
+        }
+    }
+
 
     // ------------ Other methods
 
     private void showNotification(String trackTitle) {
 
 //        Log.i(TAG,"Show notification");
-        Timber.v(TAG + " : " + "Show notification");
+        Timber.v("Show notification");
 
         // Create a notification area notification so the user
         // can get back to the MainActivity
@@ -489,6 +522,10 @@ public class MusicService extends Service
             mFullState.putBoolean("IsPlaying", isPlaying());
         }
         return mFullState;
+    }
+
+    public Bitmap getCurrentWaveform() {
+        return mCurrentWaveform;
     }
 
     public boolean isPlaying() {
@@ -542,7 +579,7 @@ public class MusicService extends Service
 
         // Prepare player : get track's info: title, duration, stream_url,  waveform_url
 //        Log.i(TAG, "playNextTrack : DownloadTrackInfo");
-        Timber.v(TAG + " : " + "playNextTrack : DownloadTrackInfo");
+        Timber.v("playNextTrack : DownloadTrackInfo");
 
 
         int index = new Random().nextInt(mTracks.size());
@@ -595,7 +632,7 @@ public class MusicService extends Service
         if (mState != State.Retrieving &&
                 mTracks.size() == 0 ) {
 //            Log.i(TAG, "Retrieve track ids");
-            Timber.v(TAG + " : " + "Retrieve track ids");
+            Timber.v("Retrieve track ids");
 
             if (mDownloadTrackIds == null) {
                 mState = State.Retrieving;
@@ -623,7 +660,7 @@ public class MusicService extends Service
 
         if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
 //            Log.i(TAG, "Audio focus request is not granted");
-            Timber.v(TAG + " : " + "Audio focus request is not granted");
+            Timber.v("Audio focus request is not granted");
 
             if (mCallbacks != null) {
                 mCallbacks.onShowErrorMessage(getString(R.string.no_audio_focus_err));
@@ -658,6 +695,8 @@ public class MusicService extends Service
         // release audio focus
         releaseAudioFocus();
 
+        // destroy imageloader
+        ImageLoader.getInstance().destroy();
 
     }
 

@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.IBinder;
@@ -14,13 +15,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
@@ -36,6 +36,9 @@ import timber.log.Timber;
         1.2.1) when track is finished, play next track = OK
     1.3) Play next/previous track = OK
     1.4) Play on background -> Use a service = OK
+    1.5) Save track waveform in the service and do not reload from URL on activity UI restore = OK
+    1.6) Visual response on press next/prev track buttons = OK
+
 
  2) Abnormal usage
     2.1) No network
@@ -46,7 +49,11 @@ import timber.log.Timber;
 
  */
 
-public class MainActivity extends Activity implements MusicService.IMusicServiceCallbacks {
+public class MainActivity extends Activity implements MusicService.IMusicServiceCallbacks,
+        ServiceConnection
+
+
+{
 
     private final static String TAG = MainActivity.class.getName();
     // UI
@@ -60,6 +67,9 @@ public class MainActivity extends Activity implements MusicService.IMusicService
     @InjectView(R.id.prevTrack)
     protected Button mPrevTrackButton;
 
+    // Button animation (next/prev track)
+    TranslateAnimation mAnimation;
+
     @InjectView(R.id.trackTitle)
     protected TextView mTrackTitle;
     @InjectView(R.id.trackDuration)
@@ -71,14 +81,12 @@ public class MainActivity extends Activity implements MusicService.IMusicService
     // Service connection
     private MusicService mService;
     private boolean mBound = false;
-    private _ServiceConnection mConnection;
 
     // Track countdown timer:
     private _CountDownTimer mTimer;
 
     // flag to restore ui at ServiceConnected() or onPause() methods
     private boolean isUiRestored=false;
-
 
     // Toast dialog
     private Toast mToast;
@@ -88,8 +96,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-//        Log.i(TAG, "onCreate");
-        Timber.v(TAG + " : " + "onCreate");
+        Timber.v("onCreate");
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -103,15 +110,12 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         // it can be canceled to pause duration counter or restarted
         mTimer = new _CountDownTimer(1000*60*60*10, 1000);
 
-        // create connection
-        mConnection = new _ServiceConnection();
-
-        // Image loader
-        // Create global configuration and initialize ImageLoader with this config
-        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this)
-                .build();
-
-        ImageLoader.getInstance().init(config);
+        // setup button animation
+        mAnimation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0,
+                Animation.RELATIVE_TO_SELF, 0,
+                Animation.RELATIVE_TO_SELF, 0,
+                Animation.RELATIVE_TO_SELF, 0.05f);
+        mAnimation.setDuration(150);
 
         startMusicService();
 
@@ -120,21 +124,18 @@ public class MainActivity extends Activity implements MusicService.IMusicService
     @Override
     protected void onStart() {
         super.onStart();
-//        Log.i(TAG,"onStart");
-        Timber.v(TAG + " : " + "onStart");
+        Timber.v("onStart");
     }
 
     @Override
     protected void onStop() {
-//        Log.i(TAG,"onStop");
-        Timber.v(TAG + " : " + "onStop");
+        Timber.v("onStop");
         super.onStop();
     }
 
     @Override
     protected void onPause(){
-//        Log.i(TAG,"onPause");
-        Timber.v(TAG + " : " + "onPause");
+        Timber.v("onPause");
         super.onPause();
 
         mTimer.cancel();
@@ -144,14 +145,13 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     @Override
     protected void onResume(){
-//        Log.i(TAG,"onResume");
-        Timber.v(TAG + " : " + "onResume");
+        Timber.v("onResume");
         super.onResume();
 
         // restore UI state:
         if (mBound) {
             // Restore previous state from MusicService :
-            restoreUiState(mService.getCurrentState());
+            restoreUiState(mService.getCurrentState(), mService.getCurrentWaveform());
         }
 
 
@@ -159,13 +159,12 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     @Override
     protected void onDestroy() {
-//        Log.i(TAG,"onDestroy");
-        Timber.v(TAG + " : " + "onDestroy");
-        ImageLoader.getInstance().destroy();
+        Timber.v("onDestroy");
 
         // Unbind from the service
         if (mBound) {
-            unbindService(mConnection);
+//            unbindService(mConnection);
+            unbindService(this);
             mBound = false;
         }
         super.onDestroy();
@@ -206,9 +205,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
     // ------ Button callbacks
     @OnClick(R.id.playPauseButton)
     public void onPlayPauseButtonClicked(View view) {
-
-//        Log.i(TAG,"onPlayPauseButtonClicked");
-        Timber.v(TAG + " : " + "onPlayPauseButtonClicked");
+        Timber.v("onPlayPauseButtonClicked");
 
         if (!mBound) {
             Log.e(TAG, "Music service is not bound");
@@ -229,8 +226,10 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     @OnClick(R.id.nextTrack)
     public void onNextTrackButtonClicked(View view) {
-//        Log.i(TAG, "onNextTrackButtonClicked");
-        Timber.v(TAG + " : " + "onNextTrackButtonClicked");
+        Timber.v("onNextTrackButtonClicked");
+
+        // animate button
+        mNextTrackButton.startAnimation(mAnimation);
 
         if (!mBound) {
             Log.e(TAG, "Music service is not bound");
@@ -248,9 +247,10 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     @OnClick(R.id.prevTrack)
     public void onPrevTrackButtonClicked(View view) {
+        Timber.v("onPrevTrackButtonClicked");
 
-//        Log.i(TAG, "onPrevTrackButtonClicked");
-        Timber.v(TAG + " : " + "onPrevTrackButtonClicked");
+        // animate button
+        mPrevTrackButton.startAnimation(mAnimation);
 
         if (!mBound) {
             Log.e(TAG, "Music service is not bound");
@@ -286,41 +286,35 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     // ----------- Service connection
     // Defines callbacks for service binding, passed to bindService()
-    private class _ServiceConnection implements ServiceConnection {
+    @Override
+    public void onServiceConnected(ComponentName className, IBinder service) {
+        Timber.v("Main activity is connected to MusicService");
 
-        @Override
-        public void onServiceConnected(ComponentName className, IBinder service) {
-//            Log.i(TAG,"Main activity is connected to MusicService");
-            Timber.v(TAG + " : " + "Main activity is connected to MusicService");
+        // We've bound to MusicService, cast the IBinder and get LocalService instance
+        MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
+        mService = binder.getService();
+        mService.setMusicServiceCallbacks(MainActivity.this);
+        mBound = true;
+        // Start service when bound
+        startService(new Intent(MainActivity.this, MusicService.class));
 
-            // We've bound to MusicService, cast the IBinder and get LocalService instance
-            MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
-            mService = binder.getService();
-            mService.setMusicServiceCallbacks(MainActivity.this);
-            mBound = true;
-            // Start service when bound
-            startService(new Intent(MainActivity.this, MusicService.class));
+        // Restore previous state from MusicService :
+        restoreUiState(mService.getCurrentState(), mService.getCurrentWaveform());
 
-            // Restore previous state from MusicService :
-            restoreUiState(mService.getCurrentState());
-
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-//            Log.i(TAG,"Main activity is disconnected from MusicService");
-            Timber.v(TAG + " : " + "Main activity is disconnected from MusicService");
-
-            mBound = false;
-        }
     }
 
+    @Override
+    public void onServiceDisconnected(ComponentName arg0) {
+        Timber.v("Main activity is disconnected from MusicService");
+
+        mBound = false;
+    }
+//    }
 
     // -------- Music Service callbacks
     @Override
     public void onDownloadTrackIdsPostExecute(Bundle result) {
-//        Log.i(TAG, "onDownloadTrackIdsPostExecute");
-        Timber.v(TAG + " : " + "onDownloadTrackIdsPostExecute");
+        Timber.v("onDownloadTrackIdsPostExecute");
 
         mProgressDialog.dismiss();
         if (!result.getBoolean("Result")) {
@@ -331,29 +325,31 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     @Override
     public void onDownloadTrackIdsStarted() {
-//        Log.i(TAG, "onDownloadTrackIdsStarted");
-        Timber.v(TAG + " : " + "onDownloadTrackIdsStarted");
+        Timber.v("onDownloadTrackIdsStarted");
 
         startProgressDialog(getString(R.string.progress_msg));
     }
 
     @Override
     public void onDownloadTrackInfoPostExecute(Bundle trackInfo) {
-//        Log.i(TAG, "onDownloadTrackInfoPostExecute");
-        Timber.v(TAG + " : " + "onDownloadTrackInfoPostExecute");
+        Timber.v("onDownloadTrackInfoPostExecute");
 
         mTrackTitle.setText(trackInfo.getString("TrackTitle"));
         mTrackTitle.setVisibility(View.VISIBLE);
 
-        String waveform_url = trackInfo.getString("TrackWaveformUrl");
-        ImageLoader.getInstance().displayImage(waveform_url, mTrackWaveform);
-        mTrackWaveform.setVisibility(View.VISIBLE);
     }
 
     @Override
+    public void onWaveformLoaded(Bitmap waveform) {
+        Timber.v("onWaveformLoaded");
+        mTrackWaveform.setImageBitmap(waveform);
+        mTrackWaveform.setVisibility(View.VISIBLE);
+    }
+
+
+    @Override
     public void onMediaPlayerPrepared(Bundle result) {
-//        Log.i(TAG,"onMediaPlayerPrepared");
-        Timber.v(TAG + " : " + "onMediaPlayerPrepared");
+        Timber.v("onMediaPlayerPrepared");
 
         mTrackDuration.setText(
                 getRemainingDuration(result.getInt("TrackDuration"))
@@ -373,16 +369,14 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     @Override
     public void onMediaPlayerStarted() {
-//        Log.i(TAG,"onMediaPlayerStarted");
-        Timber.v(TAG + " : " + "onMediaPlayerStarted");
+        Timber.v("onMediaPlayerStarted");
 
         mTimer.start();
     }
 
     @Override
     public void onMediaPlayerPaused() {
-//        Log.i(TAG,"onMediaPlayerPaused");
-        Timber.v(TAG + " : " + "onMediaPlayerPaused");
+        Timber.v("onMediaPlayerPaused");
 
         mTimer.cancel();
     }
@@ -398,15 +392,20 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     @Override
     public void onShowErrorMessage(String msg) {
-//        Log.i(TAG, "onShowErrorMessage");
-        Timber.v(TAG + " : " + "onShowErrorMessage");
+        Timber.v("onShowErrorMessage");
 
         showMessage(msg);
-        mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_play_hover));
+        initUiState();
     }
 
 
     // --------- Other class methods
+
+    private void initUiState() {
+        mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_play_hover));
+        mTrackWaveform.setVisibility(View.INVISIBLE);
+        mTrackTitle.setVisibility(View.INVISIBLE);
+    }
 
     private void adjustTrackDurationInfo() {
         if (mBound) {
@@ -430,9 +429,8 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         mToast.show();
     }
 
-    private void restoreUiState(Bundle state) {
-//        Log.i(TAG, "restoreUiState");
-        Timber.v(TAG + " : " + "restoreUiState");
+    private void restoreUiState(Bundle state, Bitmap waveform) {
+        Timber.v("restoreUiState");
 
         if (state.isEmpty() || isUiRestored) {
             return;
@@ -440,6 +438,9 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
         onDownloadTrackInfoPostExecute(state);
         onMediaPlayerPrepared(state);
+        if (waveform != null) {
+            onWaveformLoaded(waveform);
+        }
 
         if (state.getBoolean("IsPlaying")) {
             mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_pause_hover));
@@ -471,20 +472,19 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     private void startMusicService() {
         // Bind to the service
-        bindService(new Intent(this, MusicService.class), mConnection, Context.BIND_AUTO_CREATE);
+        bindService(new Intent(this, MusicService.class), this, Context.BIND_AUTO_CREATE);
     }
 
     private void stopMusicService() {
         if (mBound) {
-            unbindService(mConnection);
+            unbindService(this);
             mBound = false;
         }
         stopService(new Intent(MainActivity.this, MusicService.class));
     }
 
     private void exit() {
-//        Log.i(TAG,"exit");
-        Timber.v(TAG + " : " + "exit");
+        Timber.v("exit");
 
         stopMusicService();
         finish();
