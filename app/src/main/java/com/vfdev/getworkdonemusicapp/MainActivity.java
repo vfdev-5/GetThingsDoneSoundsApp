@@ -39,7 +39,7 @@ import timber.log.Timber;
     1.4) Play on background -> Use a service = OK
     1.5) Save track waveform in the service and do not reload from URL on activity UI restore = OK
     1.6) Visual response on press next/prev track buttons = OK
-    1.7) Click on title -> open track in the browser
+    1.7) Click on title -> open track in the browser = OK
     1.8) Settings : retrieved styles (default: trance, electro)
 
 
