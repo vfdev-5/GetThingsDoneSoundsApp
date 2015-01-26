@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.IBinder;
@@ -38,6 +39,8 @@ import timber.log.Timber;
     1.4) Play on background -> Use a service = OK
     1.5) Save track waveform in the service and do not reload from URL on activity UI restore = OK
     1.6) Visual response on press next/prev track buttons = OK
+    1.7) Click on title -> open track in the browser
+    1.8) Settings : retrieved styles (default: trance, electro)
 
 
  2) Abnormal usage
@@ -72,6 +75,8 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     @InjectView(R.id.trackTitle)
     protected TextView mTrackTitle;
+    String mTrackLink = "";
+
     @InjectView(R.id.trackDuration)
     protected TextView mTrackDuration;
 
@@ -266,6 +271,15 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
     }
 
+    @OnClick(R.id.trackTitle)
+    public void onTrackTitleClicked(View view) {
+        Timber.v("onTrackTitleClicked");
+        if (!mTrackLink.isEmpty()) {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(mTrackLink));
+            startActivity(i);
+        }
+    }
+
 
     // ----------- CountDownTimer
     private class _CountDownTimer extends CountDownTimer {
@@ -336,7 +350,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
         mTrackTitle.setText(trackInfo.getString("TrackTitle"));
         mTrackTitle.setVisibility(View.VISIBLE);
-
+        mTrackLink = trackInfo.getString("TrackLink");
     }
 
     @Override

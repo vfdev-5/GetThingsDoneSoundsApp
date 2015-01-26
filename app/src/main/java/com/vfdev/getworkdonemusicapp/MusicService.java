@@ -34,6 +34,71 @@ import java.util.Random;
 
 import timber.log.Timber;
 
+
+/*
+   *  Service class to play music from Soundcloud
+   *
+   *  Example of request :
+   *  {
+   *  "kind":"track",
+   *  "id":3207,
+   *  "created_at":"2008/03/04 01:11:02 +0000",
+   *  "user_id":1656,
+   *  "duration":492800,
+   *  "commentable":true,
+   *  "state":"finished",
+   *  "original_content_size":15872024,
+   *  "last_modified":"2011/07/05 15:56:58 +0000",
+   *  "sharing":"public",
+   *  "tag_list":"\"qburns qburnsabstractmessage redeye doubledown housemusic\"",
+   *  "permalink":"party-as-a-verb",
+   *  "streamable":true,
+   *  "embeddable_by":"all",
+   *  "downloadable":false,
+   *  "purchase_url":"http://www.stompy.com/catalog/quick-search-results.php?textfield=party+as+a+verb&submit=submit",
+   *  "label_id":null,
+   *  "purchase_title":null,
+   *  "genre":"House",
+   *  "title":"Party As A Verb",
+   *  "description":"This is Q-Burns Abstract Message in collaboration with Dallas DJ and booty-poet Red Eye. Released on Doubledown Recordings in digital and vinyl formats. It's a club popper!",
+   *  "label_name":"Doubledown",
+   *  "release":"",
+   *  "track_type":"original",
+   *  "key_signature":"",
+   *  "isrc":null,
+   *  "video_url":null,
+   *  "bpm":null,
+   *  "release_year":null,
+   *  "release_month":null,
+   *  "release_day":null,
+   *  "original_format":"mp3",
+   *  "license":"all-rights-reserved",
+   *  "uri":"https://api.soundcloud.com/tracks/3207",
+   *  "user":{
+   *        "id":1656,
+   *        "kind":"user",
+   *        "permalink":"q-burns-abstract-message",
+   *        "username":"Q-Burns Abstract Message",
+   *        "last_modified":"2015/01/25 19:38:39 +0000",
+   *        "uri":"https://api.soundcloud.com/users/1656",
+   *        "permalink_url":"http://soundcloud.com/q-burns-abstract-message",
+   *        "avatar_url":"https://i1.sndcdn.com/avatars-000081857164-czaoc6-large.jpg"
+   *        },
+   *   "permalink_url":"http://soundcloud.com/q-burns-abstract-message/party-as-a-verb",
+   *   "artwork_url":null,
+   *   "waveform_url":"https://w1.sndcdn.com/YSzOKu308iA3_m.png",
+   *   "stream_url":"https://api.soundcloud.com/tracks/3207/stream",
+   *   "playback_count":372,
+   *   "download_count":0,
+   *   "favoritings_count":2,
+   *   "comment_count":2,
+   *   "attachments_uri":"https://api.soundcloud.com/tracks/3207/attachments",
+   *   "policy":"ALLOW"
+   *   }
+   *
+   *
+ */
+
 public class MusicService extends Service
         implements MediaPlayer.OnCompletionListener,
         MediaPlayer.OnPreparedListener,
@@ -70,7 +135,8 @@ public class MusicService extends Service
     private boolean hasAudiofocus=false;
     private State mState = State.Stopped;
     // Full state (key-value map) contains (keys) :
-    // TrackTitle (String), TrackDuration (Integer), HasPrevTrack (Boolean), IsPlaying (Boolean)
+    // TrackTitle (String), TrackDuration (Integer), HasPrevTrack (Boolean), IsPlaying (Boolean),
+    // TrackLink (String Url)
     private Bundle mFullState;
 
 
@@ -438,11 +504,13 @@ public class MusicService extends Service
 
                 // get title:
                 mFullState.putString("TrackTitle", trackJSON.getString("title"));
+                // get permalink:
+                mFullState.putString("TrackLink", trackJSON.getString("permalink_url"));
                 // get waveform:
                 String waveform_url=trackJSON.getString("waveform_url");
-//                mFullState.putString("TrackWaveformUrl", trackJSON.getString("waveform_url"));
                 mCurrentWaveform=null;
                 ImageLoader.getInstance().loadImage(waveform_url, mLoadingListener);
+
 
                 if (mCallbacks != null) {
                     mCallbacks.onDownloadTrackInfoPostExecute(mFullState);

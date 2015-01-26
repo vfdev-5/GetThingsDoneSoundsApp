@@ -74,7 +74,8 @@
         android:layout_alignTop="@+id/waveform"
         android:layout_alignParentLeft="true"
         android:visibility="invisible"
-        android:layout_marginRight="@dimen/activity_horizontal_margin3" />
+        android:layout_marginRight="@dimen/activity_horizontal_margin3"
+        android:clickable="true"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -86,16 +87,5 @@
         android:layout_alignParentRight="true"
         android:visibility="invisible"
         android:textColor="@android:color/darker_gray" />
-
-    <!--TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="@string/thxSoundCloud"
-        android:id="@+id/thxSoundCloud"
-        android:textColor="@android:color/darker_gray"
-        android:layout_below="@+id/appLabel"
-        android:layout_centerHorizontal="true" /-->
-
 
 </RelativeLayout>

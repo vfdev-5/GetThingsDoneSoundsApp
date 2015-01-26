@@ -27,7 +27,11 @@
     <string name="title">About</string>
     <string name="ok">OK</string>
 
-    <string name="about_text">This is an android version of the site www.getworkdonemusic.com</string>
+    <string name="about_text">
+        This is an android version of the site www.getworkdonemusic.com \n \n
+        My special thanks to the creator of the site, Ryan Ghods !
+    </string>
+
     <!--<string name="thx_sound_cloud">Special thanks to <a href="https://developers.soundcloud.com/">Soundcloud</a>.</string>-->
     <string name="thx_sound_cloud">Special thanks to Soundcloud. \nhttps://developers.soundcloud.com</string>
 
