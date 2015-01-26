@@ -1,2 +1,2 @@
 # GetWorkDoneMusicApp
-Android prototype app of 'GetWorkDoneMusic' site
+Android prototype app of 'GetWorkDoneMusic' site (www.getworkdonemusic.com)
