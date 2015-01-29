@@ -1,4 +1,4 @@
-package com.vfdev.getworkdonemusicapp;
+package com.vfdev.gettingthingsdonemusicapp;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -107,6 +107,8 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         setContentView(R.layout.activity_main);
         ButterKnife.inject(this);
 
+        // set custom title :
+        setTitle(R.string.main_activity_name);
 
         mProgressDialog = new ProgressDialog(this);
         mToast = Toast.makeText(getApplicationContext(), "", Toast.LENGTH_LONG);
@@ -221,11 +223,11 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         if (mService.isPlaying()) {
             // is playing -> change icon to 'play' and pause player
             mService.pause();
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_play_hover));
+            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.play_button));
 
         } else if (mService.play()) {
             // is not playing -> change icon to 'pause'
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_pause_hover));
+            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.pause_button));
         }
     }
 
@@ -244,7 +246,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
         if (!mService.isPlaying()) {
             // is not playing -> change icon to 'pause'
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_pause_hover));
+            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.pause_button));
         }
         mService.playNextTrack();
 
@@ -265,7 +267,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
         if (!mService.isPlaying()) {
             // is not playing -> change icon to 'pause'
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_pause_hover));
+            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.pause_button));
         }
         mService.playPrevTrack();
 
@@ -416,7 +418,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
     // --------- Other class methods
 
     private void initUiState() {
-        mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_play_hover));
+        mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.play_button));
         mTrackWaveform.setVisibility(View.INVISIBLE);
         mTrackTitle.setVisibility(View.INVISIBLE);
     }
@@ -457,10 +459,10 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         }
 
         if (state.getBoolean("IsPlaying")) {
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_pause_hover));
+            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.pause_button));
             onMediaPlayerStarted();
         } else {
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.big_play_hover));
+            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.play_button));
             adjustTrackDurationInfo();
         }
         isUiRestored=true;

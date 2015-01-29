@@ -1,4 +1,4 @@
-package com.vfdev.getworkdonemusicapp;
+package com.vfdev.gettingthingsdonemusicapp;
 
 import android.app.Notification;
 import android.app.PendingIntent;

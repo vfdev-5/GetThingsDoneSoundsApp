@@ -1,4 +1,4 @@
-package com.vfdev.getworkdonemusicapp;
+package com.vfdev.gettingthingsdonemusicapp;
 
 import android.graphics.drawable.Drawable;
 import android.test.ActivityInstrumentationTestCase2;
