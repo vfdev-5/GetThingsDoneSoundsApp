@@ -1,14 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    signingConfigs {
-        config {
-            keyAlias 'vfdev'
-            storeFile file('/Users/vfomin/Documents/devDocs/mkeystore.jks')
-            keyPassword 'Vom:107!'
-            storePassword 'Vom:107!'
-        }
-    }
+
     compileSdkVersion 16
     buildToolsVersion '21.1.1'
     defaultConfig {
@@ -17,13 +10,11 @@ android {
         targetSdkVersion 16
         versionCode 1
         versionName "pancake"
-        signingConfig signingConfigs.config
     }
     buildTypes {
         release {
             minifyEnabled false // Otherwise app does not work
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.config
         }
     }
     productFlavors {
