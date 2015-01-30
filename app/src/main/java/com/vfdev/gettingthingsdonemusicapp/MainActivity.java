@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -52,7 +53,8 @@ import timber.log.Timber;
 
  */
 
-public class MainActivity extends Activity implements MusicService.IMusicServiceCallbacks,
+public class MainActivity extends Activity
+        implements MusicService.IMusicServiceCallbacks,
         ServiceConnection
 
 
@@ -69,6 +71,9 @@ public class MainActivity extends Activity implements MusicService.IMusicService
     protected Button mNextTrackButton;
     @InjectView(R.id.prevTrack)
     protected Button mPrevTrackButton;
+
+    private Drawable mPlayButtonDrawable;
+    private Drawable mPauseButtonDrawable;
 
     // Button animation (next/prev track)
     TranslateAnimation mAnimation;
@@ -109,6 +114,11 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
         // set custom title :
         setTitle(R.string.main_activity_name);
+
+        // setup play/pause drawables
+        mPlayButtonDrawable = getResources().getDrawable(R.drawable.play_button);
+        mPauseButtonDrawable = getResources().getDrawable(R.drawable.pause_button);
+        mPlayPauseButton.setImageDrawable(mPlayButtonDrawable);
 
         mProgressDialog = new ProgressDialog(this);
         mToast = Toast.makeText(getApplicationContext(), "", Toast.LENGTH_LONG);
@@ -223,11 +233,11 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         if (mService.isPlaying()) {
             // is playing -> change icon to 'play' and pause player
             mService.pause();
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.play_button));
+            mPlayPauseButton.setImageDrawable(mPlayButtonDrawable);
 
         } else if (mService.play()) {
             // is not playing -> change icon to 'pause'
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.pause_button));
+            mPlayPauseButton.setImageDrawable(mPauseButtonDrawable);
         }
     }
 
@@ -246,7 +256,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
         if (!mService.isPlaying()) {
             // is not playing -> change icon to 'pause'
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.pause_button));
+            mPlayPauseButton.setImageDrawable(mPauseButtonDrawable);
         }
         mService.playNextTrack();
 
@@ -267,7 +277,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
 
         if (!mService.isPlaying()) {
             // is not playing -> change icon to 'pause'
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.pause_button));
+            mPlayPauseButton.setImageDrawable(mPauseButtonDrawable);
         }
         mService.playPrevTrack();
 
@@ -418,7 +428,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
     // --------- Other class methods
 
     private void initUiState() {
-        mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.play_button));
+        mPlayPauseButton.setImageDrawable(mPlayButtonDrawable);
         mTrackWaveform.setVisibility(View.INVISIBLE);
         mTrackTitle.setVisibility(View.INVISIBLE);
     }
@@ -459,10 +469,10 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         }
 
         if (state.getBoolean("IsPlaying")) {
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.pause_button));
+            mPlayPauseButton.setImageDrawable(mPauseButtonDrawable);
             onMediaPlayerStarted();
         } else {
-            mPlayPauseButton.setImageDrawable(getResources().getDrawable(R.drawable.play_button));
+            mPlayPauseButton.setImageDrawable(mPlayButtonDrawable);
             adjustTrackDurationInfo();
         }
         isUiRestored=true;

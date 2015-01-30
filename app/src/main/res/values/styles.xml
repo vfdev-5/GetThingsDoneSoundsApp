@@ -8,7 +8,7 @@
     <color name="buttonColor">#00000000</color>
 
     <style name="Theme.GettingThingsDoneMusic" parent="@android:style/Theme.Holo">
-        
+
     </style>
 
 </resources>

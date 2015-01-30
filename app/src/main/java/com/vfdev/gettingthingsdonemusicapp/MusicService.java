@@ -565,6 +565,8 @@ public class MusicService extends Service
         final Intent notificationIntent = new Intent(getApplicationContext(), MainActivity.class);
         final PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
 
+        Context c = getApplicationContext();
+
         final Notification notification = new Notification.Builder(getApplicationContext())
                 .setContentTitle(getString(R.string.app_name))
                 .setContentText(trackTitle)
@@ -718,7 +720,7 @@ public class MusicService extends Service
     }
 
 
-    boolean requestAudioFocus() {
+    private boolean requestAudioFocus() {
         // request audio focus :
         int result = mAudioManager.requestAudioFocus(this,
                 // Use the music stream.
@@ -740,13 +742,13 @@ public class MusicService extends Service
         return hasAudiofocus;
     }
 
-    void releaseAudioFocus() {
+    private void releaseAudioFocus() {
         hasAudiofocus=false;
         mAudioManager.abandonAudioFocus(this);
     }
 
 
-    void releaseResources() {
+    private void releaseResources() {
 
         // stop being a foreground service
         stopForeground(true);
