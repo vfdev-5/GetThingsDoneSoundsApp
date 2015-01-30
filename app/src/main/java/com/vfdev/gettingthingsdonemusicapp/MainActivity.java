@@ -47,17 +47,11 @@ import timber.log.Timber;
  2) Abnormal usage
     2.1) No network
 
-
  3) BUGS :
-     1) Played longtime than stopped with the "Error: what=1, extra=-1004"
 
  */
 
-public class MainActivity extends Activity
-        implements MusicService.IMusicServiceCallbacks,
-        ServiceConnection
-
-
+public class MainActivity extends Activity implements MusicService.IMusicServiceCallbacks, ServiceConnection
 {
 
     private final static String TAG = MainActivity.class.getName();
@@ -213,8 +207,6 @@ public class MainActivity extends Activity
 //        } else if (id == R.id.action_settings) {
 //            return true;
 //        }
-
-
 
         return super.onOptionsItemSelected(item);
     }
