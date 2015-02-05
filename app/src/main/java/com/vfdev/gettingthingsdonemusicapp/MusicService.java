@@ -148,10 +148,10 @@ public class MusicService extends Service
     private final static String REQUEST_TRACKS_URL=API_URL+"tracks.json?genres=";
     private final static String REQUEST_TRACKS_URL_WITH_TAGS=API_URL+"tracks.json?tags=";
     private final static String REQUEST_A_TRACK_URL=API_URL+"tracks/";
-    private final static String TRACKS_LIMIT="100";
+    private final static int TRACKS_LIMIT=100;
 
     // Tracks
-    private ArrayList<Integer> mTracksHistory;
+    private ArrayList<String> mTracksHistory;
     private ArrayList<String> mTracks;
     private ArrayList<String> mStyles;
     private String mTags;
@@ -195,7 +195,7 @@ public class MusicService extends Service
 
         // fetch tracks
         mTracks = new ArrayList<String>();
-        mTracksHistory = new ArrayList<Integer>();
+        mTracksHistory = new ArrayList<String>();
 
         mStyles = new ArrayList<String>();
         mStyles.add("trance");
@@ -228,7 +228,8 @@ public class MusicService extends Service
     public int onStartCommand(Intent intent, int flags, int startId) {
         Timber.v("onStartCommand");
 
-        retrieveTrackIds();
+        // track ids are retrieved when tags are set
+//        retrieveTrackIds();
         return START_NOT_STICKY; // Don't automatically restart this Service if it is killed
     }
 
@@ -434,15 +435,20 @@ public class MusicService extends Service
 
 
     // ---------- DownloadTrackIds2 AsyncTask
-    private class DownloadTrackIds2 extends AsyncTask<Void, Void, Bundle> {
-        protected Bundle doInBackground(Void... params) {
+    private class DownloadTrackIds2 extends AsyncTask<Bundle, Void, Bundle> {
+        boolean mNotify=false;
+
+        protected Bundle doInBackground(Bundle... params) {
+
+            mNotify = params[0].getBoolean("Notify");
+            int tracksLimit = params[0].getInt("TracksLimit");
 
             Bundle result = new Bundle();
             Timber.v("DownloadTrackIds : request tracks on tags : " + mTags);
 
             String requestUrl = REQUEST_TRACKS_URL_WITH_TAGS;
             requestUrl += mTags;
-            requestUrl += "&limit=" + TRACKS_LIMIT;
+            requestUrl += "&limit=" + String.valueOf(tracksLimit);
             requestUrl += "&offset=" + String.valueOf(new Random().nextInt(1000));
             requestUrl += "&client_id=" + CLIENT_ID;
 
@@ -493,11 +499,11 @@ public class MusicService extends Service
 
         protected void onPostExecute(Bundle result) {
 
-            if (mCallbacks != null) {
+            if (mCallbacks != null && mNotify) {
                 mCallbacks.onDownloadTrackIdsPostExecute(result);
             }
             mState = State.Stopped;
-            mDownloadTrackIds=null;
+            mDownloadTrackIds2=null;
         }
     }
 
@@ -700,23 +706,14 @@ public class MusicService extends Service
         Timber.v("playNextTrack : DownloadTrackInfo");
 
 
-        // get track index randomly : it is not in the played tracks history
-        int index = -1;
-        int count=5;
-        while (index < 0) {
-            index = new Random().nextInt(mTracks.size());
-            if (!mTracksHistory.isEmpty() &&
-                    mTracksHistory.contains(index) &&
-                    count > 0) {
-                index=-1;
-            }
-            count--;
-        }
+        // get track index randomly :
+        int index = new Random().nextInt(mTracks.size());
+        String trackId = mTracks.remove(index);
 
-        prepareAndPlay(index);
-        mTracksHistory.add(index);
+        prepareAndPlay(trackId);
+        mTracksHistory.add(trackId);
 
-        if (mTracksHistory.size() > Integer.parseInt(TRACKS_LIMIT)) {
+        if (mTracksHistory.size() > TRACKS_LIMIT) {
             mTracksHistory.remove(0);
         }
 
@@ -725,8 +722,8 @@ public class MusicService extends Service
     public void playPrevTrack() {
         if (mTracksHistory.size() > 1) {
             mTracksHistory.remove(mTracksHistory.size() - 1);
-            int index = mTracksHistory.get(mTracksHistory.size() - 1);
-            prepareAndPlay(index);
+            String trackId = mTracksHistory.get(mTracksHistory.size() - 1);
+            prepareAndPlay(trackId);
         }
     }
 
@@ -736,7 +733,7 @@ public class MusicService extends Service
     }
 
     // prepare and play the track at index
-    void prepareAndPlay(int trackIndex) {
+    void prepareAndPlay(String trackId) {
 
         if (mDownloadTrackInfo == null) {
 
@@ -748,7 +745,7 @@ public class MusicService extends Service
 
             // Prepare player : get track's info: title, duration, stream_url,  waveform_url
             String requestUrl = REQUEST_A_TRACK_URL;
-            requestUrl += mTracks.get(trackIndex) + ".json";
+            requestUrl += trackId + ".json";
             requestUrl += "?client_id=" + CLIENT_ID;
 
             mDownloadTrackInfo = new DownloadTrackInfo();
@@ -756,7 +753,9 @@ public class MusicService extends Service
         }
     }
 
-    public void setTags(String tags) {
+    public void setTags(String tags, boolean notify) {
+        Timber.v("setTags : " + tags);
+
         StringBuilder out= new StringBuilder();
         for (String s : tags.split(",")) {
             String tag=s.toLowerCase();
@@ -766,25 +765,35 @@ public class MusicService extends Service
         out.deleteCharAt(out.length()-1);
         mTags = out.toString();
 
+        // retrieve track ids for new tags
+        retrieveTrackIds(notify);
+
     }
 
-    public void retrieveTrackIds() {
+    private void retrieveTrackIds() {
+        retrieveTrackIds(true);
+    }
 
-        if (mState != State.Retrieving &&
-                mTracks.size() == 0 ) {
+    private void retrieveTrackIds(boolean notify) {
+
+        if (mState != State.Retrieving) {
             Timber.v("Retrieve track ids");
 
-            if (mDownloadTrackIds == null) {
+            if (mDownloadTrackIds2 == null) {
                 mState = State.Retrieving;
 
-                if (mCallbacks != null) {
+                if (!mTracks.isEmpty()) mTracks.clear();
+
+                if (mCallbacks != null && notify) {
                     mCallbacks.onDownloadTrackIdsStarted();
                 }
 
-//                mDownloadTrackIds = new DownloadTrackIds();
-//                mDownloadTrackIds.execute();
+                Bundle params = new Bundle();
+                params.putBoolean("Notify", notify);
+                params.putInt("TracksLimit", TRACKS_LIMIT);
+
                 mDownloadTrackIds2 = new DownloadTrackIds2();
-                mDownloadTrackIds2.execute();
+                mDownloadTrackIds2.execute(params);
 
             }
 

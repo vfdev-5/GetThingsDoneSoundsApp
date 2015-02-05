@@ -342,11 +342,11 @@ public class MainActivity extends Activity implements
         mService.setMusicServiceCallbacks(MainActivity.this);
         mBound = true;
 
-        // set tags:
-        mService.setTags(mDBHandler.getTags());
-
         // Start service when bound
-        startService(new Intent(MainActivity.this, MusicService.class));
+//        startService(new Intent(MainActivity.this, MusicService.class));
+
+        // set tags -> retrieve track ids
+        mService.setTags(mDBHandler.getTags(), true);
 
         // Restore previous state from MusicService :
         restoreUiState(mService.getCurrentState(), mService.getCurrentWaveform());
@@ -368,7 +368,7 @@ public class MainActivity extends Activity implements
 
         mProgressDialog.dismiss();
         if (!result.getBoolean("Result")) {
-            showMessage(result.getString("Message"));
+            onShowErrorMessage(result.getString("Message"));
             stopMusicService();
         }
     }
@@ -526,8 +526,11 @@ public class MainActivity extends Activity implements
     }
 
     private void startMusicService() {
+        // start music service -> service is independent
+        startService(new Intent(this, MusicService.class));
         // Bind to the service
         bindService(new Intent(this, MusicService.class), this, Context.BIND_AUTO_CREATE);
+
     }
 
     private void stopMusicService() {
@@ -556,9 +559,6 @@ public class MainActivity extends Activity implements
 
     }
 
-//    private void settings() {
-//        new MenuDialogHelper().showSettings(this, mDBHandler);
-//    }
 
     private void settings() {
 
@@ -568,17 +568,28 @@ public class MainActivity extends Activity implements
 
     }
 
+    private void setupNewTags(String tags) {
+
+        if (tags.isEmpty()) return;
+
+        mDBHandler.setTags(tags);
+        Toast.makeText(this, getString(R.string.tags_updated), Toast.LENGTH_SHORT).show();
+
+        // start retrieving tracks for new tags
+        mService.setTags(mDBHandler.getTags(), true);
+
+    }
+
+
     @Override
     public void onUpdateData(String newTags) {
-        mDBHandler.setTags(newTags);
-        Toast.makeText(this, getString(R.string.tags_updated), Toast.LENGTH_SHORT).show();
+        setupNewTags(newTags);
     }
 
 
     @Override
     public void onResetDefault() {
-        mDBHandler.setTags(getString(R.string.settings_default_tags));
-        Toast.makeText(this, getString(R.string.tags_default), Toast.LENGTH_SHORT).show();
+        setupNewTags(getString(R.string.settings_default_tags));
     }
 
 
