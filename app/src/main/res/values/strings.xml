@@ -9,6 +9,9 @@
     <string name="action_about">About</string>
     <string name="action_exit">Quit</string>
 
+    <string name="tags_updated">New tags stored</string>
+    <string name="tags_default">Default tags restored</string>
+
 
     <string name="next_track">gimme another\n cool sound</string>
     <string name="prev_track">that last one\n was sweet</string>
@@ -25,9 +28,20 @@
     <string name="no_tracks">No tracks</string>
 
 
+    <!-- Settings -->
+    <string name="settings_dialog_title">Playlist configuration</string>
+    <string name="settings_dialog_tags">Tags :</string>
+    <string name="settings_update">Update</string>
+    <string name="settings_default">Default</string>
+
+    <string name="settings_default_tags">trance, Armin van Buuren, Dash Berlin, A State Of Trance</string>
+
+
+
+
     <!-- About -->
-    <string name="title">About</string>
-    <string name="ok">OK</string>
+    <string name="about_dialog_title">About</string>
+    <string name="about_dialog_ok">OK</string>
 
     <string name="about_text">
         This is an app inspired by the concept of the site www.getworkdonemusic.com to

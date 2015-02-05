@@ -30,6 +30,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
 import timber.log.Timber;
@@ -105,8 +106,6 @@ public class MusicService extends Service
         MediaPlayer.OnErrorListener,
         AudioManager.OnAudioFocusChangeListener {
 
-    private final static String TAG = MusicService.class.getName();
-
 //    private NotificationManager mNotificationManager;
     private static final int NOTIFICATION_ID = 1;
     private Bitmap mServiceIcon;
@@ -147,6 +146,7 @@ public class MusicService extends Service
     private final static int HTTP_OK=200;
     private final static String API_URL="http://api.soundcloud.com/";
     private final static String REQUEST_TRACKS_URL=API_URL+"tracks.json?genres=";
+    private final static String REQUEST_TRACKS_URL_WITH_TAGS=API_URL+"tracks.json?tags=";
     private final static String REQUEST_A_TRACK_URL=API_URL+"tracks/";
     private final static String TRACKS_LIMIT="100";
 
@@ -154,10 +154,12 @@ public class MusicService extends Service
     private ArrayList<Integer> mTracksHistory;
     private ArrayList<String> mTracks;
     private ArrayList<String> mStyles;
+    private String mTags;
 
     // AsyncTasks
     private DownloadTrackInfo mDownloadTrackInfo;
     private DownloadTrackIds mDownloadTrackIds;
+    private DownloadTrackIds2 mDownloadTrackIds2;
 
     // ImageLoader onLoadingComplete Callback instance
     _SimpleImageLoadingListener mLoadingListener;
@@ -168,7 +170,6 @@ public class MusicService extends Service
 
     @Override
     public void onCreate() {
-//        Log.i(TAG, "Creating service");
         Timber.v("Creating service");
 
 //        mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -225,7 +226,6 @@ public class MusicService extends Service
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-//        Log.i(TAG, "onStartCommand");
         Timber.v("onStartCommand");
 
         retrieveTrackIds();
@@ -236,7 +236,6 @@ public class MusicService extends Service
     @Override
     public void onDestroy() {
         // Service is being killed, so make sure we release our resources
-//        Log.i(TAG, "Destroy music service");
         Timber.v("Destroy music service");
 
         mState = State.Stopped;
@@ -245,7 +244,6 @@ public class MusicService extends Service
 
     @Override
     public IBinder onBind(Intent arg0) {
-//        Log.i(TAG, "onBind");
         Timber.v("onBind");
 
         return mBinder;
@@ -253,7 +251,6 @@ public class MusicService extends Service
 
     @Override
     public boolean onUnbind(Intent intent) {
-//        Log.i(TAG, "onUnbind");
         Timber.v("onUnbind");
 
         mCallbacks = null;
@@ -264,7 +261,6 @@ public class MusicService extends Service
     // -------- MediaPlayer listeners
 
     public void onCompletion(MediaPlayer player) {
-//        Log.i(TAG, "onCompletion MediaPlayer");
         Timber.v("onCompletion MediaPlayer");
 
         // The media player finished playing the current Track, so we go ahead and start the next.
@@ -272,7 +268,6 @@ public class MusicService extends Service
     }
 
     public void onPrepared(MediaPlayer player) {
-//        Log.i(TAG, "onPrepared MediaPlayer");
         Timber.v("onPrepared MediaPlayer");
 
         // The media player is done preparing. That means we can start playing!
@@ -294,7 +289,6 @@ public class MusicService extends Service
         // audio focus is lost while service was in State.Preparing
         // Player should not start
         if (hasAudiofocus) {
-//            Log.i(TAG, "Has audio focus. Start playing");
             Timber.v("Has audio focus. Start playing");
 
             if (mCallbacks != null) {
@@ -302,14 +296,11 @@ public class MusicService extends Service
             }
             player.start();
         } else {
-//            Log.i(TAG, "Has no audio focus. Do not start");
             Timber.v("Has no audio focus. Do not start");
-
         }
     }
 
     public boolean onError(MediaPlayer mp, int what, int extra) {
-//        Log.e(TAG, "Error: what=" + String.valueOf(what) + ", extra=" + String.valueOf(extra));
         Timber.i("what=" + String.valueOf(what) + ", extra=" + String.valueOf(extra));
 
         mState = State.Stopped;
@@ -327,11 +318,9 @@ public class MusicService extends Service
     // ------------ OnAudioFocusChangeListener
     @Override
     public void onAudioFocusChange(int focusChange) {
-//        Log.i(TAG, "onAudioFocusChange");
         Timber.v("onAudioFocusChange");
 
         if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-//            Log.i(TAG, "AUDIOFOCUS_LOSS_TRANSIENT");
             Timber.v("AUDIOFOCUS_LOSS_TRANSIENT");
 
             hasAudiofocus=false;
@@ -341,7 +330,6 @@ public class MusicService extends Service
                 mState = State.Playing;
             }
         } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-//            Log.i(TAG, "AUDIOFOCUS_GAIN");
             Timber.v("AUDIOFOCUS_GAIN");
 
             // Resume playback
@@ -352,7 +340,6 @@ public class MusicService extends Service
                 play();
             }
         } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
-//            Log.i(TAG, "AUDIOFOCUS_LOSS");
             Timber.v("AUDIOFOCUS_LOSS");
 
             // Audio focus loss is permanent
@@ -381,7 +368,6 @@ public class MusicService extends Service
 
             Bundle result = new Bundle();
             for (String style : mStyles) {
-//                Log.i(TAG, "DownloadTrackIds : request track of genre : " + style);
                 Timber.v("DownloadTrackIds : request track of genre : " + style);
 
                 String requestUrl = REQUEST_TRACKS_URL;
@@ -400,7 +386,6 @@ public class MusicService extends Service
                     if (code == HTTP_OK) {
                         // Parse the response:
                         JSONArray tracksJSON = new JSONArray(responseStr);
-//                        Log.i(TAG, "getTracksInBackground : found " + tracksJSON.length() + " tracks");
                         Timber.v("getTracksInBackground : found " + tracksJSON.length() + " tracks");
 
                         for (int i = 0; i < tracksJSON.length(); i++) {
@@ -411,7 +396,6 @@ public class MusicService extends Service
                             }
                         }
                     } else {
-//                        Log.e(TAG, "getTracksInBackground : request error : " + responseStr);
                         Timber.e("getTracksInBackground : request error : " + responseStr);
 
                         result.putBoolean("Result", false);
@@ -420,14 +404,12 @@ public class MusicService extends Service
                     }
                 } catch (IOException e) {
 //                    e.printStackTrace();
-//                    Log.e(TAG, "getTracksInBackground : SoundCloud get request error : " + e.getMessage());
                     Timber.i(e, "getTracksInBackground : SoundCloud get request error : " + e.getMessage());
                     result.putBoolean("Result", false);
                     result.putString("Message", getString(R.string.connx_err));
                     return result;
                 } catch (JSONException e) {
 //                    e.printStackTrace();
-//                    Log.e(TAG, "getTracksInBackground : JSON parse error : " + e.getMessage());
                     Timber.e(e, "getTracksInBackground : JSON parse error : " + e.getMessage());
                     result.putBoolean("Result", false);
                     result.putString("Message", getString(R.string.app_err));
@@ -450,6 +432,76 @@ public class MusicService extends Service
         }
     }
 
+
+    // ---------- DownloadTrackIds2 AsyncTask
+    private class DownloadTrackIds2 extends AsyncTask<Void, Void, Bundle> {
+        protected Bundle doInBackground(Void... params) {
+
+            Bundle result = new Bundle();
+            Timber.v("DownloadTrackIds : request tracks on tags : " + mTags);
+
+            String requestUrl = REQUEST_TRACKS_URL_WITH_TAGS;
+            requestUrl += mTags;
+            requestUrl += "&limit=" + TRACKS_LIMIT;
+            requestUrl += "&offset=" + String.valueOf(new Random().nextInt(1000));
+            requestUrl += "&client_id=" + CLIENT_ID;
+
+            try {
+                Request request = new Request.Builder()
+                        .url(requestUrl).build();
+
+                Response response = mSoundCloudClient.newCall(request).execute();
+                int code = response.code();
+                String responseStr = response.body().string();
+                if (code == HTTP_OK) {
+                    // Parse the response:
+                    JSONArray tracksJSON = new JSONArray(responseStr);
+                    Timber.v("getTracksInBackground : found " + tracksJSON.length() + " tracks");
+
+                    for (int i = 0; i < tracksJSON.length(); i++) {
+                        JSONObject trackJSON = tracksJSON.getJSONObject(i);
+                        if (trackJSON.getBoolean("streamable")) {
+                            String id = trackJSON.getString("id");
+                            mTracks.add(id);
+                        }
+                    }
+                } else {
+                    Timber.e("getTracksInBackground : request error : " + responseStr);
+
+                    result.putBoolean("Result", false);
+                    result.putString("Message", getString(R.string.app_err));
+                    return result;
+                }
+            } catch (IOException e) {
+//                    e.printStackTrace();
+                Timber.i(e, "getTracksInBackground : SoundCloud get request error : " + e.getMessage());
+                result.putBoolean("Result", false);
+                result.putString("Message", getString(R.string.connx_err));
+                return result;
+            } catch (JSONException e) {
+//                    e.printStackTrace();
+                Timber.e(e, "getTracksInBackground : JSON parse error : " + e.getMessage());
+                result.putBoolean("Result", false);
+                result.putString("Message", getString(R.string.app_err));
+                return result;
+            }
+            result.putBoolean("Result", true);
+            result.putString("Message", "");
+            return result;
+
+        }
+
+        protected void onPostExecute(Bundle result) {
+
+            if (mCallbacks != null) {
+                mCallbacks.onDownloadTrackIdsPostExecute(result);
+            }
+            mState = State.Stopped;
+            mDownloadTrackIds=null;
+        }
+    }
+
+
     // --------- DownloadTrackInfo AsyncTask
     private class DownloadTrackInfo extends AsyncTask<String, Void, Bundle> {
         protected Bundle doInBackground(String... requestUrl) {
@@ -466,14 +518,12 @@ public class MusicService extends Service
                     result.putBoolean("Result", true);
                     result.putString("JSONResult", responseStr);
                 } else {
-//                    Log.e(TAG, "DownloadTrackInfo : request error : " + responseStr);
                     Timber.e("DownloadTrackInfo : request error : " + responseStr);
                     result.putBoolean("Result", false);
                     result.putString("Message", getString(R.string.app_err));
                 }
             } catch (IOException e) {
 //                e.printStackTrace();
-//                Log.e(TAG, "DownloadTrackInfo : request error : " + e.getMessage());
                 Timber.i(e, "DownloadTrackInfo : request error : " + e.getMessage());
                 result.putBoolean("Result", false);
                 result.putString("Message", getString(R.string.connx_err));
@@ -496,11 +546,13 @@ public class MusicService extends Service
                 // prepare player:
                 if (trackJSON.getBoolean("streamable")) {
                     String stream_url = trackJSON.getString("stream_url");
-//                    mMediaPlayer.reset();
                     mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
                     mMediaPlayer.setDataSource(stream_url + "?client_id=" + CLIENT_ID);
                     mMediaPlayer.prepareAsync();
                 }
+
+                // debug : get tags:
+                Timber.v("Track tags : "+ trackJSON.getString("tag_list"));
 
                 // get title:
                 mFullState.putString("TrackTitle", trackJSON.getString("title"));
@@ -518,7 +570,6 @@ public class MusicService extends Service
 
             } catch (IOException e) {
 //                e.printStackTrace();
-//                Log.e(TAG, "DownloadTrackInfo : onPostExecute : request error : " + e.getMessage());
                 Timber.e(e, "DownloadTrackInfo : onPostExecute : request error : " + e.getMessage());
                 if (mCallbacks != null) {
                     mCallbacks.onShowErrorMessage(getString(R.string.app_err));
@@ -527,7 +578,6 @@ public class MusicService extends Service
 
             } catch (JSONException e) {
 //                e.printStackTrace();
-//                Log.e(TAG, "DownloadTrackInfo : onPostExecute : JSON parse error : " + e.getMessage());
                 Timber.e(e, "DownloadTrackInfo : onPostExecute : JSON parse error : " + e.getMessage());
 
                 if (mCallbacks != null) {
@@ -557,7 +607,6 @@ public class MusicService extends Service
 
     private void showNotification(String trackTitle) {
 
-//        Log.i(TAG,"Show notification");
         Timber.v("Show notification");
 
         // Create a notification area notification so the user
@@ -648,11 +697,22 @@ public class MusicService extends Service
     public void playNextTrack() {
 
         // Prepare player : get track's info: title, duration, stream_url,  waveform_url
-//        Log.i(TAG, "playNextTrack : DownloadTrackInfo");
         Timber.v("playNextTrack : DownloadTrackInfo");
 
 
-        int index = new Random().nextInt(mTracks.size());
+        // get track index randomly : it is not in the played tracks history
+        int index = -1;
+        int count=5;
+        while (index < 0) {
+            index = new Random().nextInt(mTracks.size());
+            if (!mTracksHistory.isEmpty() &&
+                    mTracksHistory.contains(index) &&
+                    count > 0) {
+                index=-1;
+            }
+            count--;
+        }
+
         prepareAndPlay(index);
         mTracksHistory.add(index);
 
@@ -696,12 +756,22 @@ public class MusicService extends Service
         }
     }
 
+    public void setTags(String tags) {
+        StringBuilder out= new StringBuilder();
+        for (String s : tags.split(",")) {
+            String tag=s.toLowerCase();
+            tag = tag.replaceAll("^\\s+", "").replaceAll("\\s+$","").replaceAll("\\s","%20");
+            out.append(tag).append(",");
+        }
+        out.deleteCharAt(out.length()-1);
+        mTags = out.toString();
 
-    private void retrieveTrackIds() {
+    }
+
+    public void retrieveTrackIds() {
 
         if (mState != State.Retrieving &&
                 mTracks.size() == 0 ) {
-//            Log.i(TAG, "Retrieve track ids");
             Timber.v("Retrieve track ids");
 
             if (mDownloadTrackIds == null) {
@@ -711,8 +781,11 @@ public class MusicService extends Service
                     mCallbacks.onDownloadTrackIdsStarted();
                 }
 
-                mDownloadTrackIds = new DownloadTrackIds();
-                mDownloadTrackIds.execute();
+//                mDownloadTrackIds = new DownloadTrackIds();
+//                mDownloadTrackIds.execute();
+                mDownloadTrackIds2 = new DownloadTrackIds2();
+                mDownloadTrackIds2.execute();
+
             }
 
         }
@@ -729,7 +802,6 @@ public class MusicService extends Service
                 AudioManager.AUDIOFOCUS_GAIN);
 
         if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-//            Log.i(TAG, "Audio focus request is not granted");
             Timber.v("Audio focus request is not granted");
 
             if (mCallbacks != null) {

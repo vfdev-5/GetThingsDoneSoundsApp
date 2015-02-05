@@ -6,13 +6,21 @@ import timber.log.Timber;
  */
 public class Application extends android.app.Application {
 
-    @Override public void onCreate() {
+    @Override
+    public void onCreate() {
         super.onCreate();
         if (BuildConfig.DEBUG) {
             Timber.plant(new Timber.DebugTree());
         } else {
             Timber.plant(new CrashReportingTree());
         }
+
+
+        // Application DB setup:
+        AppDBHandler handler = new AppDBHandler(getApplicationContext(),
+                getString(R.string.settings_default_tags));
+        handler.close();
+
     }
     /** A tree which logs important information for crash reporting. */
     private static class CrashReportingTree extends Timber.HollowTree {

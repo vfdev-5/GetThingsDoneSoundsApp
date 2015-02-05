@@ -1,6 +1,7 @@
 package com.vfdev.gettingthingsdonemusicapp;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
 
@@ -13,7 +14,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.IBinder;
-import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -33,6 +34,9 @@ import timber.log.Timber;
 
 /* TODO:
  1) Normal usage
+
+    ---- version 1.0
+
     1.1) Fetch track ids on genres = OK
     1.2) Play/Pause a track = OK
         1.2.1) when track is finished, play next track = OK
@@ -41,7 +45,19 @@ import timber.log.Timber;
     1.5) Save track waveform in the service and do not reload from URL on activity UI restore = OK
     1.6) Visual response on press next/prev track buttons = OK
     1.7) Click on title -> open track in the browser = OK
-    1.8) Settings : retrieved styles (default: trance, electro)
+
+    ---- version 1.1
+    1.8) Random choice of track and do not repeat : check id in track history
+    1.9) Settings : configure retrieved styles by keywords (default: trance, electro)
+        - replace search genres by tags:
+        default tags : trance,electronic,armin,Dash Berlin,ASOT
+
+    ---- version 2.0
+    2.0) View Pager : view1 = Main, view2 = List of played tracks, view3 = Favorite tracks
+    2.1) Add local DB to store conf:
+    2.2) Download playing track
+    2.3) Show played list : list item = { track name }
+    2.4) 'Like' track
 
 
  2) Abnormal usage
@@ -51,10 +67,12 @@ import timber.log.Timber;
 
  */
 
-public class MainActivity extends Activity implements MusicService.IMusicServiceCallbacks, ServiceConnection
+public class MainActivity extends Activity implements
+        MusicService.IMusicServiceCallbacks,
+        ServiceConnection,
+        SettingsDialog.SettingsDialogCallback
 {
 
-    private final static String TAG = MainActivity.class.getName();
     // UI
     private ProgressDialog mProgressDialog;
 
@@ -95,6 +113,9 @@ public class MainActivity extends Activity implements MusicService.IMusicService
     // Toast dialog
     private Toast mToast;
 
+    // Database handler
+    AppDBHandler mDBHandler;
+
 
     // ------- Activity methods
 
@@ -127,6 +148,9 @@ public class MainActivity extends Activity implements MusicService.IMusicService
                 Animation.RELATIVE_TO_SELF, 0,
                 Animation.RELATIVE_TO_SELF, 0.05f);
         mAnimation.setDuration(150);
+
+
+        setupDB();
 
         startMusicService();
 
@@ -178,6 +202,10 @@ public class MainActivity extends Activity implements MusicService.IMusicService
             unbindService(this);
             mBound = false;
         }
+
+        // Close database connection
+        mDBHandler.close();
+
         super.onDestroy();
     }
 
@@ -203,10 +231,10 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         } else if (id == R.id.action_exit) {
             exit();
             return true;
+        } else if (id == R.id.action_settings) {
+            settings();
+            return true;
         }
-//        } else if (id == R.id.action_settings) {
-//            return true;
-//        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -217,7 +245,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         Timber.v("onPlayPauseButtonClicked");
 
         if (!mBound) {
-            Log.e(TAG, "Music service is not bound");
+            Timber.v("Play track is clicked, but MusicService is not bound -> startMusicService");
             startMusicService();
             return;
         }
@@ -241,7 +269,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         mNextTrackButton.startAnimation(mAnimation);
 
         if (!mBound) {
-            Log.e(TAG, "Music service is not bound");
+            Timber.v("Next track is clicked, but MusicService is not bound -> startMusicService");
             startMusicService();
             return;
         }
@@ -262,7 +290,7 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         mPrevTrackButton.startAnimation(mAnimation);
 
         if (!mBound) {
-            Log.e(TAG, "Music service is not bound");
+            Timber.v("Prev track is clicked, but MusicService is not bound -> startMusicService");
             startMusicService();
             return;
         }
@@ -313,6 +341,10 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         mService = binder.getService();
         mService.setMusicServiceCallbacks(MainActivity.this);
         mBound = true;
+
+        // set tags:
+        mService.setTags(mDBHandler.getTags());
+
         // Start service when bound
         startService(new Intent(MainActivity.this, MusicService.class));
 
@@ -488,6 +520,11 @@ public class MainActivity extends Activity implements MusicService.IMusicService
         mProgressDialog.show();
     }
 
+    private void setupDB() {
+        Timber.v("Setup DB");
+        mDBHandler = new AppDBHandler(this);
+    }
+
     private void startMusicService() {
         // Bind to the service
         bindService(new Intent(this, MusicService.class), this, Context.BIND_AUTO_CREATE);
@@ -509,8 +546,40 @@ public class MainActivity extends Activity implements MusicService.IMusicService
     }
 
 
-    void about() {
-        About.show(this);
+    private void about() {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.about_dialog_title)
+                .setView(getLayoutInflater().inflate(R.layout.alertdialog_about, null));
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
     }
+
+//    private void settings() {
+//        new MenuDialogHelper().showSettings(this, mDBHandler);
+//    }
+
+    private void settings() {
+
+        SettingsDialog dialog = new SettingsDialog(this);
+        dialog.setData(mDBHandler.getTags());
+        dialog.show();
+
+    }
+
+    @Override
+    public void onUpdateData(String newTags) {
+        mDBHandler.setTags(newTags);
+        Toast.makeText(this, getString(R.string.tags_updated), Toast.LENGTH_SHORT).show();
+    }
+
+
+    @Override
+    public void onResetDefault() {
+        mDBHandler.setTags(getString(R.string.settings_default_tags));
+        Toast.makeText(this, getString(R.string.tags_default), Toast.LENGTH_SHORT).show();
+    }
+
 
 }
