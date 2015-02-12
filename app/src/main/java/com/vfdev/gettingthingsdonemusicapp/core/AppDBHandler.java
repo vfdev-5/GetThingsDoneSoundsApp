@@ -1,4 +1,4 @@
-package com.vfdev.gettingthingsdonemusicapp;
+package com.vfdev.gettingthingsdonemusicapp.core;
 
 import android.content.ContentValues;
 import android.content.Context;

@@ -1,5 +1,7 @@
 package com.vfdev.gettingthingsdonemusicapp;
 
+import com.vfdev.gettingthingsdonemusicapp.core.AppDBHandler;
+
 import timber.log.Timber;
 
 /**
@@ -22,6 +24,9 @@ public class Application extends android.app.Application {
         handler.close();
 
     }
+
+
+
     /** A tree which logs important information for crash reporting. */
     private static class CrashReportingTree extends Timber.HollowTree {
         @Override public void i(String message, Object... args) {

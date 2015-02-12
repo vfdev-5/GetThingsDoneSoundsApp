@@ -2,32 +2,28 @@ package com.vfdev.gettingthingsdonemusicapp;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Fragment;
+import android.app.FragmentManager;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
+import android.support.v13.app.FragmentPagerAdapter;
+import android.support.v4.view.ViewPager;
 
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.os.IBinder;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.TranslateAnimation;
-import android.widget.Button;
-import android.widget.ImageButton;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import com.vfdev.gettingthingsdonemusicapp.core.AppDBHandler;
+import com.vfdev.gettingthingsdonemusicapp.core.SoundCloudHelper;
+
+import java.util.ArrayList;
+
 import butterknife.ButterKnife;
-import butterknife.InjectView;
-import butterknife.OnClick;
 import timber.log.Timber;
 
 
@@ -54,7 +50,7 @@ import timber.log.Timber;
 
     ---- version 2.0
     2.0) View Pager : view1 = Main, view2 = List of played tracks, view3 = Favorite tracks
-    2.1) Add local DB to store conf:
+    2.1) OK = Add local DB to store conf:
     2.2) Download playing track
     2.3) Show played list : list item = { track name }
     2.4) 'Like' track
@@ -68,47 +64,26 @@ import timber.log.Timber;
  */
 
 public class MainActivity extends Activity implements
-        MusicService.IMusicServiceCallbacks,
+        MusicService.OnErrorListener,
         ServiceConnection,
         SettingsDialog.SettingsDialogCallback
 {
 
     // UI
     private ProgressDialog mProgressDialog;
+    // Pager View/Adapter
+    private ViewPager mViewPager;
+    private PagerAdapter mPagerAdapter;
+    // Fragments
+    private MainFragment mMainFragment;
+    private PlaylistFragment mPlaylistFragment;
+    private FavoriteTracksFragment mFavoriteTracksFragment;
 
-    @InjectView(R.id.playPauseButton)
-    protected ImageButton mPlayPauseButton;
 
-    @InjectView(R.id.nextTrack)
-    protected Button mNextTrackButton;
-    @InjectView(R.id.prevTrack)
-    protected Button mPrevTrackButton;
-
-    private Drawable mPlayButtonDrawable;
-    private Drawable mPauseButtonDrawable;
-
-    // Button animation (next/prev track)
-    TranslateAnimation mAnimation;
-
-    @InjectView(R.id.trackTitle)
-    protected TextView mTrackTitle;
-    String mTrackLink = "";
-
-    @InjectView(R.id.trackDuration)
-    protected TextView mTrackDuration;
-
-    @InjectView(R.id.waveform)
-    protected WaveformView mTrackWaveform;
 
     // Service connection
     private MusicService mService;
     private boolean mBound = false;
-
-    // Track countdown timer:
-    private _CountDownTimer mTimer;
-
-    // flag to restore ui at ServiceConnected() or onPause() methods
-    private boolean isUiRestored=false;
 
     // Toast dialog
     private Toast mToast;
@@ -130,25 +105,10 @@ public class MainActivity extends Activity implements
         // set custom title :
         setTitle(R.string.main_activity_name);
 
-        // setup play/pause drawables
-        mPlayButtonDrawable = getResources().getDrawable(R.drawable.play_button);
-        mPauseButtonDrawable = getResources().getDrawable(R.drawable.pause_button);
-        mPlayPauseButton.setImageDrawable(mPlayButtonDrawable);
+        setupPagerUI();
 
-        mProgressDialog = new ProgressDialog(this);
+//        mProgressDialog = new ProgressDialog(this);
         mToast = Toast.makeText(getApplicationContext(), "", Toast.LENGTH_LONG);
-
-        // initialize a timer : counter of 10 hours by one second
-        // it can be canceled to pause duration counter or restarted
-        mTimer = new _CountDownTimer(1000*60*60*10, 1000);
-
-        // setup button animation
-        mAnimation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0,
-                Animation.RELATIVE_TO_SELF, 0,
-                Animation.RELATIVE_TO_SELF, 0,
-                Animation.RELATIVE_TO_SELF, 0.05f);
-        mAnimation.setDuration(150);
-
 
         setupDB();
 
@@ -173,22 +133,12 @@ public class MainActivity extends Activity implements
         Timber.v("onPause");
         super.onPause();
 
-        mTimer.cancel();
-        isUiRestored=false;
-
     }
 
     @Override
     protected void onResume(){
         Timber.v("onResume");
         super.onResume();
-
-        // restore UI state:
-        if (mBound) {
-            // Restore previous state from MusicService :
-            restoreUiState(mService.getCurrentState(), mService.getCurrentWaveform());
-        }
-
 
     }
 
@@ -198,7 +148,6 @@ public class MainActivity extends Activity implements
 
         // Unbind from the service
         if (mBound) {
-//            unbindService(mConnection);
             unbindService(this);
             mBound = false;
         }
@@ -239,98 +188,9 @@ public class MainActivity extends Activity implements
         return super.onOptionsItemSelected(item);
     }
 
-    // ------ Button callbacks
-    @OnClick(R.id.playPauseButton)
-    public void onPlayPauseButtonClicked(View view) {
-        Timber.v("onPlayPauseButtonClicked");
-
-        if (!mBound) {
-            Timber.v("Play track is clicked, but MusicService is not bound -> startMusicService");
-            startMusicService();
-            return;
-        }
-
-        if (mService.isPlaying()) {
-            // is playing -> change icon to 'play' and pause player
-            mService.pause();
-            mPlayPauseButton.setImageDrawable(mPlayButtonDrawable);
-
-        } else if (mService.play()) {
-            // is not playing -> change icon to 'pause'
-            mPlayPauseButton.setImageDrawable(mPauseButtonDrawable);
-        }
-    }
-
-    @OnClick(R.id.nextTrack)
-    public void onNextTrackButtonClicked(View view) {
-        Timber.v("onNextTrackButtonClicked");
-
-        // animate button
-        mNextTrackButton.startAnimation(mAnimation);
-
-        if (!mBound) {
-            Timber.v("Next track is clicked, but MusicService is not bound -> startMusicService");
-            startMusicService();
-            return;
-        }
-
-        if (!mService.isPlaying()) {
-            // is not playing -> change icon to 'pause'
-            mPlayPauseButton.setImageDrawable(mPauseButtonDrawable);
-        }
-        mService.playNextTrack();
-
-    }
-
-    @OnClick(R.id.prevTrack)
-    public void onPrevTrackButtonClicked(View view) {
-        Timber.v("onPrevTrackButtonClicked");
-
-        // animate button
-        mPrevTrackButton.startAnimation(mAnimation);
-
-        if (!mBound) {
-            Timber.v("Prev track is clicked, but MusicService is not bound -> startMusicService");
-            startMusicService();
-            return;
-        }
-
-        if (!mService.isPlaying()) {
-            // is not playing -> change icon to 'pause'
-            mPlayPauseButton.setImageDrawable(mPauseButtonDrawable);
-        }
-        mService.playPrevTrack();
-
-    }
-
-    @OnClick(R.id.trackTitle)
-    public void onTrackTitleClicked(View view) {
-        Timber.v("onTrackTitleClicked");
-        if (!mTrackLink.isEmpty()) {
-            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(mTrackLink));
-            startActivity(i);
-        }
-    }
-
-
-    // ----------- CountDownTimer
-    private class _CountDownTimer extends CountDownTimer {
-
-        public _CountDownTimer(long millisInFuture, long countDownInterval) {
-            super(millisInFuture, countDownInterval);
-        }
-        @Override
-        public void onTick(long l) {
-            adjustTrackDurationInfo();
-        }
-
-        @Override
-        public void onFinish() {
-
-        }
-    }
 
     // ----------- Service connection
+
     // Defines callbacks for service binding, passed to bindService()
     @Override
     public void onServiceConnected(ComponentName className, IBinder service) {
@@ -339,29 +199,21 @@ public class MainActivity extends Activity implements
         // We've bound to MusicService, cast the IBinder and get LocalService instance
         MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
         mService = binder.getService();
-        mService.setMusicServiceCallbacks(MainActivity.this);
+//        mService.setMusicServiceCallbacks(MainActivity.this);
         mBound = true;
 
-        // Start service when bound
-//        startService(new Intent(MainActivity.this, MusicService.class));
-
-        // set tags -> retrieve track ids
-        mService.setTags(mDBHandler.getTags(), true);
-
-        // Restore previous state from MusicService :
-        restoreUiState(mService.getCurrentState(), mService.getCurrentWaveform());
-
+        mMainFragment.setService(mService);
     }
 
     @Override
     public void onServiceDisconnected(ComponentName arg0) {
         Timber.v("Main activity is disconnected from MusicService");
-
         mBound = false;
+        mMainFragment.setService(null);
     }
-//    }
 
     // -------- Music Service callbacks
+/*
     @Override
     public void onDownloadTrackIdsPostExecute(Bundle result) {
         Timber.v("onDownloadTrackIdsPostExecute");
@@ -376,141 +228,56 @@ public class MainActivity extends Activity implements
     @Override
     public void onDownloadTrackIdsStarted() {
         Timber.v("onDownloadTrackIdsStarted");
-
         startProgressDialog(getString(R.string.progress_msg));
     }
 
     @Override
     public void onDownloadTrackInfoPostExecute(Bundle trackInfo) {
         Timber.v("onDownloadTrackInfoPostExecute");
-
-        mTrackTitle.setText(trackInfo.getString("TrackTitle"));
-        mTrackTitle.setVisibility(View.VISIBLE);
-        mTrackLink = trackInfo.getString("TrackLink");
+        mMainFragment.setupTrackInfo(trackInfo);
     }
 
     @Override
     public void onWaveformLoaded(Bitmap waveform) {
         Timber.v("onWaveformLoaded");
-        mTrackWaveform.setImageBitmap(waveform);
-        mTrackWaveform.setVisibility(View.VISIBLE);
+        mMainFragment.setWaveform(waveform);
     }
-
 
     @Override
     public void onMediaPlayerPrepared(Bundle result) {
         Timber.v("onMediaPlayerPrepared");
-
-        mTrackDuration.setText(
-                getRemainingDuration(result.getInt("TrackDuration"))
-        );
-        mTrackDuration.setVisibility(View.VISIBLE);
-
-        if (mNextTrackButton.getVisibility() == View.INVISIBLE){
-            mNextTrackButton.setVisibility(View.VISIBLE);
-        }
-
-        if (result.getBoolean("HasPrevTrack")) {
-            mPrevTrackButton.setVisibility(View.VISIBLE);
-        } else {
-            mPrevTrackButton.setVisibility(View.INVISIBLE);
-        }
+        mMainFragment.finalizeTrackInfoAndUi(result);
     }
 
     @Override
     public void onMediaPlayerStarted() {
         Timber.v("onMediaPlayerStarted");
-
-        mTimer.start();
+        mMainFragment.startTimer();
     }
 
     @Override
     public void onMediaPlayerPaused() {
         Timber.v("onMediaPlayerPaused");
-
-        mTimer.cancel();
+        mMainFragment.stopTimer();
     }
-
 
     @Override
     public void onMediaPlayerIsPreparing() {
-        mTrackDuration.setVisibility(View.INVISIBLE);
-        mTrackWaveform.setProgress(0.0);
-        mTimer.cancel();
+        mMainFragment.prepareTrackInfoAndUi();
         showMessage(getString(R.string.progress_msg2));
     }
-
+*/
     @Override
     public void onShowErrorMessage(String msg) {
         Timber.v("onShowErrorMessage");
-
         showMessage(msg);
-        initUiState();
     }
-
 
     // --------- Other class methods
-
-    private void initUiState() {
-        mPlayPauseButton.setImageDrawable(mPlayButtonDrawable);
-        mTrackWaveform.setVisibility(View.INVISIBLE);
-        mTrackTitle.setVisibility(View.INVISIBLE);
-    }
-
-    private void adjustTrackDurationInfo() {
-        if (mBound) {
-            int duration = mService.getTrackDuration();
-            int currentPosition = mService.getTrackCurrentPosition();
-            int remaining = duration - currentPosition;
-            if (remaining >= 0) {
-                mTrackDuration.setText(getRemainingDuration(remaining));
-                mTrackWaveform.setProgress(currentPosition*1.0/duration);
-            }
-
-//            if (currentPosition > 7000 && currentPosition < duration - 7000) {
-//                int newPosition = duration - 7000;
-//                mService.rewindTrackTo(newPosition);
-//            }
-        }
-    }
 
     private void showMessage(String msg) {
         mToast.setText(msg);
         mToast.show();
-    }
-
-    private void restoreUiState(Bundle state, Bitmap waveform) {
-        Timber.v("restoreUiState");
-
-        if (state.isEmpty() || isUiRestored) {
-            return;
-        }
-
-        onDownloadTrackInfoPostExecute(state);
-        onMediaPlayerPrepared(state);
-        if (waveform != null) {
-            onWaveformLoaded(waveform);
-        }
-
-        if (state.getBoolean("IsPlaying")) {
-            mPlayPauseButton.setImageDrawable(mPauseButtonDrawable);
-            onMediaPlayerStarted();
-        } else {
-            mPlayPauseButton.setImageDrawable(mPlayButtonDrawable);
-            adjustTrackDurationInfo();
-        }
-        isUiRestored=true;
-    }
-
-    private String getRemainingDuration(int durationInMillis) {
-
-        int hours = ((int) Math.floor(durationInMillis * 0.001 / 3600.0)) % 60;
-        int minutes = ((int) Math.floor(durationInMillis * 0.001 / 60.0)) % 60;
-        int seconds = ((int) Math.floor(durationInMillis * 0.001)) % 60;
-        if (hours != 0) {
-            return String.format("-%02d:%02d:%02d", hours, minutes, seconds);
-        }
-        return String.format("-%02d:%02d", minutes, seconds);
     }
 
     private void startProgressDialog(String msg) {
@@ -520,9 +287,38 @@ public class MainActivity extends Activity implements
         mProgressDialog.show();
     }
 
+    private void setupPagerUI() {
+
+        // Create fragments:
+        mMainFragment = new MainFragment();
+        mPlaylistFragment = new PlaylistFragment();
+        mFavoriteTracksFragment = new FavoriteTracksFragment();
+
+        // Create pager adapter
+        mPagerAdapter = new PagerAdapter(getFragmentManager());
+        mPagerAdapter.appendFragment(mMainFragment);
+        mPagerAdapter.appendFragment(mPlaylistFragment);
+        mPagerAdapter.appendFragment(mFavoriteTracksFragment);
+
+        // Create and set up the ViewPager .
+        mViewPager = (ViewPager) findViewById(R.id.pager);
+        mViewPager.setAdapter(mPagerAdapter);
+
+        mViewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                Timber.v("onPageSelected : " + String.valueOf(position));
+            }
+        });
+
+    }
+
     private void setupDB() {
         Timber.v("Setup DB");
         mDBHandler = new AppDBHandler(this);
+
+        SoundCloudHelper.getInstance().setTags(mDBHandler.getTags());
+
     }
 
     private void startMusicService() {
@@ -530,7 +326,6 @@ public class MainActivity extends Activity implements
         startService(new Intent(this, MusicService.class));
         // Bind to the service
         bindService(new Intent(this, MusicService.class), this, Context.BIND_AUTO_CREATE);
-
     }
 
     private void stopMusicService() {
@@ -543,11 +338,9 @@ public class MainActivity extends Activity implements
 
     private void exit() {
         Timber.v("exit");
-
         stopMusicService();
         finish();
     }
-
 
     private void about() {
 
@@ -558,7 +351,6 @@ public class MainActivity extends Activity implements
         dialog.show();
 
     }
-
 
     private void settings() {
 
@@ -576,20 +368,58 @@ public class MainActivity extends Activity implements
         Toast.makeText(this, getString(R.string.tags_updated), Toast.LENGTH_SHORT).show();
 
         // start retrieving tracks for new tags
-        mService.setTags(mDBHandler.getTags(), true);
+        SoundCloudHelper.getInstance().setTags(mDBHandler.getTags());
 
     }
 
+    // ----------- SettingsDialog.SettingsDialogCallback
 
     @Override
     public void onUpdateData(String newTags) {
         setupNewTags(newTags);
     }
 
-
     @Override
     public void onResetDefault() {
         setupNewTags(getString(R.string.settings_default_tags));
+    }
+
+    // ------------ PagerAdapter
+
+    private class PagerAdapter extends FragmentPagerAdapter {
+
+        private ArrayList<Fragment> mFragments;
+
+        public PagerAdapter(FragmentManager fm) {
+            super(fm);
+            // Setup fragments:
+            mFragments = new ArrayList<Fragment>();
+        }
+
+        public void appendFragment(Fragment f) {
+            mFragments.add(f);
+        }
+
+
+        @Override
+        public Fragment getItem(int position) {
+
+            if (position >=0 && position < mFragments.size()) {
+                return mFragments.get(position);
+            }
+            return null;
+        }
+
+        @Override
+        public int getCount() {
+            return mFragments.size();
+        }
+
+        @Override
+        public CharSequence getPageTitle(int position) {
+            return "Fragment Title";
+        }
+
     }
 
 

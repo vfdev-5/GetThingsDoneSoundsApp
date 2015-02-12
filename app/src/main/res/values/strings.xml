@@ -8,47 +8,38 @@
     <string name="action_settings">Settings</string>
     <string name="action_about">About</string>
     <string name="action_exit">Quit</string>
-
     <string name="tags_updated">New tags stored</string>
     <string name="tags_default">Default tags restored</string>
-
-
     <string name="next_track">gimme another\n cool sound</string>
     <string name="prev_track">that last one\n was sweet</string>
-
     <string name="progress_msg">Please wait while retrieving a playlist</string>
-    <string name="progress_msg2">New track is loading &#8230;</string>
+    <string name="progress_msg2">New track is loading …</string>
     <string name="connx_err">Ops, there is a problem with internet connection</string>
     <string name="app_err">Ops, there is a problem with the application</string>
     <string name="no_audio_focus_err">Ops, this app can not play music while another app uses audio service</string>
+    <string name="nexttrack_err">Ops, there is a problem to play next track</string>
+    <string name="prevtrack_err">Ops, there is a problem to play previous track</string>
+    <string name="play_failed">Somehow, app can not play tracks</string>
 
     <!-- MusicService -->
     <string name="soundCloud_client_id">1abbcf4f4c91b04bb5591fe5a9f60821</string>
-    <!--string name="SoundCloud_Client_S">0663fa5d867e5716bc0e38ad9b0f9707</string-->
     <string name="no_tracks">No tracks</string>
-
 
     <!-- Settings -->
     <string name="settings_dialog_title">Playlist configuration</string>
     <string name="settings_dialog_tags">Tags :</string>
     <string name="settings_update">Update</string>
     <string name="settings_default">Default</string>
-
     <string name="settings_default_tags">trance, Armin van Buuren, Dash Berlin, A State Of Trance</string>
-
-
-
 
     <!-- About -->
     <string name="about_dialog_title">About</string>
     <string name="about_dialog_ok">OK</string>
+    <string name="about_text">        This is an app inspired by the concept of the site www.getworkdonemusic.com to
+        \'Get Things Done\' with good music !</string>
 
-    <string name="about_text">
-        This is an app inspired by the concept of the site www.getworkdonemusic.com to
-        \'Get Things Done\' with good music !
-    </string>
-
-    <!--<string name="thx_sound_cloud">Special thanks to <a href="https://developers.soundcloud.com/">Soundcloud</a>.</string>-->
+    <!-- <string name="thx_sound_cloud">Special thanks to <a href="https://developers.soundcloud.com/">Soundcloud</a>.</string> -->
     <string name="thx_sound_cloud">Special thanks to Soundcloud. \nhttps://developers.soundcloud.com</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>
