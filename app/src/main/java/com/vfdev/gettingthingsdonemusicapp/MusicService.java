@@ -52,6 +52,7 @@ public class MusicService extends Service implements
     private IBinder mBinder;
     private OnStateChangeListener mListener;
     private OnErrorListener mErrorListener;
+    private OnTrackListUpdateListener mTracksUpdateListener;
 
     // MediaPlayer
     private MediaPlayer mMediaPlayer;
@@ -281,6 +282,10 @@ public class MusicService extends Service implements
         public void onShowErrorMessage(String msg);
     }
 
+    public interface OnTrackListUpdateListener {
+        public void onUpdate(ArrayList<TrackInfo> tracks);
+    }
+
     // ----------- ImageLoader onLoadingComplete listener
 
     private class _SimpleImageLoadingListener extends SimpleImageLoadingListener {
@@ -331,6 +336,11 @@ public class MusicService extends Service implements
         mErrorListener = listener;
     }
 
+    public void setTrackListUpdateListener(OnTrackListUpdateListener listener) {
+        mTracksUpdateListener = listener;
+    }
+
+
     public void setTracks(ArrayList<TrackInfo> tracks) {
         mTracks = tracks;
     }
@@ -370,6 +380,9 @@ public class MusicService extends Service implements
             if (requestAudioFocus()) {
                 return playNextTrack();
             }
+        } else if (mState == State.Preparing) {
+            // Probably it is ok
+            return true;
         }
 
         return false;
@@ -389,8 +402,8 @@ public class MusicService extends Service implements
         Timber.v("playNextTrack");
 
         // this should solve the problem of multiple 'machine gun' touches problem
-        if (mState == State.Preparing)
-            return true;
+//        if (mState == State.Preparing)
+//            return true;
 
         if (mTracks.isEmpty()) {
             Timber.v("TRACK LIST IS EMPTY");
@@ -409,6 +422,12 @@ public class MusicService extends Service implements
         if (mTracksHistory.size() > TRACKSHISTORY_LIMIT) {
             mTracksHistory.remove(0);
         }
+
+        if (mTracksUpdateListener != null) {
+            mTracksUpdateListener.onUpdate(mTracksHistory);
+        }
+
+
         return prepareAndPlay(track);
 
     }
@@ -416,7 +435,7 @@ public class MusicService extends Service implements
     private void debugShowTracks() {
         Timber.d("Tracks : ------- ");
         for (TrackInfo track  : mTracks) {
-            Timber.v("\t " + track.id + " | \t" + track.title);
+            Timber.d("\t " + track.id + " | \t" + track.title);
         }
         Timber.d("---------------- ");
     }
@@ -425,14 +444,19 @@ public class MusicService extends Service implements
         Timber.v("playPrevTrack");
 
         // this should solve the problem of multiple 'machine gun' touches problem
-        if (mState == State.Preparing)
-            return true;
+//        if (mState == State.Preparing)
+//            return true;
 
         if (mTracksHistory.size() > 1) {
 
             toPreparingState();
             mTracksHistory.remove(mTracksHistory.size() - 1);
             TrackInfo track = mTracksHistory.get(mTracksHistory.size() - 1);
+
+            if (mTracksUpdateListener != null) {
+                mTracksUpdateListener.onUpdate(mTracksHistory);
+            }
+
             return prepareAndPlay(track);
         }
         return false;
@@ -441,6 +465,11 @@ public class MusicService extends Service implements
     public void rewindTrackTo(int seconds) {
         mMediaPlayer.seekTo(seconds);
     }
+
+    public ArrayList<TrackInfo> getTrackList() {
+        return mTracksHistory;
+    }
+
 
     private void toPreparingState() {
         if (mListener != null) {

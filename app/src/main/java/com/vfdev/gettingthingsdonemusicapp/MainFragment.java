@@ -38,7 +38,7 @@ public class MainFragment extends Fragment implements
     // Ui
     @InjectView(R.id.playPauseButton)
     protected ImageButton mPlayPauseButton;
-    boolean isPlaying=false;
+    private boolean isPlaying=false;
 
     @InjectView(R.id.nextTrack)
     protected Button mNextTrackButton;
@@ -389,29 +389,6 @@ public class MainFragment extends Fragment implements
         mToast.show();
     }
 
-    public void setupTrackInfo(Bundle trackInfo) {
-        mTrackTitle.setText(trackInfo.getString("TrackTitle"));
-        mTrackTitle.setVisibility(View.VISIBLE);
-        mTrackLink = trackInfo.getString("TrackLink");
-    }
-
-    public void finalizeTrackInfoAndUi(Bundle result) {
-        mTrackDuration.setText(
-                getRemainingDuration(result.getInt("TrackDuration"))
-        );
-        mTrackDuration.setVisibility(View.VISIBLE);
-
-        if (mNextTrackButton.getVisibility() == View.INVISIBLE){
-            mNextTrackButton.setVisibility(View.VISIBLE);
-        }
-
-        if (result.getBoolean("HasPrevTrack")) {
-            mPrevTrackButton.setVisibility(View.VISIBLE);
-        } else {
-            mPrevTrackButton.setVisibility(View.INVISIBLE);
-        }
-    }
-
     private void restoreUiState(Bundle state, Bitmap waveform) {
         Timber.v("restoreUiState");
 
@@ -445,8 +422,8 @@ public class MainFragment extends Fragment implements
                 mTrackWaveform.setProgress(currentPosition*1.0/duration);
             }
 
-//            if (currentPosition > 7000 && currentPosition < duration - 7000) {
-//                int newPosition = duration - 7000;
+//            if (currentPosition > 5000 && currentPosition < duration - 5000) {
+//                int newPosition = duration - 5000;
 //                mService.rewindTrackTo(newPosition);
 //            }
         }

@@ -9,4 +9,7 @@
 
     <dimen name="button_width">140dp</dimen>
     <dimen name="button_height">60dp</dimen>
+
+    <dimen name="item_height">80dp</dimen>
+
 </resources>

@@ -52,14 +52,17 @@ import timber.log.Timber;
     2.0) View Pager : view1 = Main, view2 = List of played tracks, view3 = Favorite tracks
     2.1) OK = Add local DB to store conf:
     2.2) Download playing track
-    2.3) Show played list : list item = { track name }
-    2.4) 'Like' track
+    2.3) PlaylistFragment : tracklist : item = { track name/tags ; duration ; star }
+        a) Item onClick : play track -> remove all track after
+    2.4) Track Title onClick : AlertDialog : {Mark as favorite; Download to phone; Open in SoundCloud}
 
 
  2) Abnormal usage
     2.1) No network
 
  3) BUGS :
+
+    1) play track -> next -> back -> restore from notification
 
  */
 
@@ -199,10 +202,10 @@ public class MainActivity extends Activity implements
         // We've bound to MusicService, cast the IBinder and get LocalService instance
         MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
         mService = binder.getService();
-//        mService.setMusicServiceCallbacks(MainActivity.this);
         mBound = true;
-
+        mService.setErrorListener(this);
         mMainFragment.setService(mService);
+        mPlaylistFragment.setService(mService);
     }
 
     @Override
@@ -212,61 +215,8 @@ public class MainActivity extends Activity implements
         mMainFragment.setService(null);
     }
 
-    // -------- Music Service callbacks
-/*
-    @Override
-    public void onDownloadTrackIdsPostExecute(Bundle result) {
-        Timber.v("onDownloadTrackIdsPostExecute");
+    // --------- Music Service onError listener
 
-        mProgressDialog.dismiss();
-        if (!result.getBoolean("Result")) {
-            onShowErrorMessage(result.getString("Message"));
-            stopMusicService();
-        }
-    }
-
-    @Override
-    public void onDownloadTrackIdsStarted() {
-        Timber.v("onDownloadTrackIdsStarted");
-        startProgressDialog(getString(R.string.progress_msg));
-    }
-
-    @Override
-    public void onDownloadTrackInfoPostExecute(Bundle trackInfo) {
-        Timber.v("onDownloadTrackInfoPostExecute");
-        mMainFragment.setupTrackInfo(trackInfo);
-    }
-
-    @Override
-    public void onWaveformLoaded(Bitmap waveform) {
-        Timber.v("onWaveformLoaded");
-        mMainFragment.setWaveform(waveform);
-    }
-
-    @Override
-    public void onMediaPlayerPrepared(Bundle result) {
-        Timber.v("onMediaPlayerPrepared");
-        mMainFragment.finalizeTrackInfoAndUi(result);
-    }
-
-    @Override
-    public void onMediaPlayerStarted() {
-        Timber.v("onMediaPlayerStarted");
-        mMainFragment.startTimer();
-    }
-
-    @Override
-    public void onMediaPlayerPaused() {
-        Timber.v("onMediaPlayerPaused");
-        mMainFragment.stopTimer();
-    }
-
-    @Override
-    public void onMediaPlayerIsPreparing() {
-        mMainFragment.prepareTrackInfoAndUi();
-        showMessage(getString(R.string.progress_msg2));
-    }
-*/
     @Override
     public void onShowErrorMessage(String msg) {
         Timber.v("onShowErrorMessage");

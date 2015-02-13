@@ -21,6 +21,10 @@
     <string name="prevtrack_err">Ops, there is a problem to play previous track</string>
     <string name="play_failed">Somehow, app can not play tracks</string>
 
+
+    <!-- Playlist Fragment  -->
+    <string name="pf_title">Now played tracks : </string>
+
     <!-- MusicService -->
     <string name="soundCloud_client_id">1abbcf4f4c91b04bb5591fe5a9f60821</string>
     <string name="no_tracks">No tracks</string>
