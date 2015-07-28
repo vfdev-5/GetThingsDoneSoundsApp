@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/getting_things_done_music"
-    tools:context="com.vfdev.gettingthingsdonemusicapp.PlaylistFragment">
+    tools:context="com.vfdev.gettingthingsdonemusicapp.Fragments.PlaylistFragment">
 
 
     <TextView

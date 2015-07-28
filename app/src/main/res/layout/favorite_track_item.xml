@@ -2,8 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="horizontal"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:descendantFocusability="blocksDescendants">
+    android:layout_height="wrap_content">
 
 
     <LinearLayout
@@ -17,7 +16,7 @@
             android:layout_height="fill_parent"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:text="DASH BERLIN - A State of trance - Au5 - Armin - Yekaterinburg"
-            android:id="@+id/p_item_trackTitle"
+            android:id="@+id/ft_item_trackTitle"
             android:textStyle="bold"
             android:layout_weight="1" />
 
@@ -25,7 +24,7 @@
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:text="@string/settings_default_tags"
-            android:id="@+id/p_item_tags"
+            android:id="@+id/ft_item_tags"
             android:layout_gravity="center_horizontal"
             android:layout_weight="1"
             android:singleLine="true"
@@ -37,7 +36,7 @@
         android:layout_height="fill_parent"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:text="1:15:23"
-        android:id="@+id/p_item_trackDuration"
+        android:id="@+id/ft_item_trackDuration"
         android:layout_gravity="center_vertical"
         android:layout_weight="2"
         android:singleLine="true"
@@ -46,9 +45,10 @@
     <ImageView
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/p_item_trackStar"
+        android:id="@+id/ft_item_trackDownload"
         android:layout_gravity="center_vertical"
         android:layout_weight="2"
-        android:src="@android:drawable/btn_star_big_off"/>
+        android:src="@android:drawable/stat_sys_download_done"
+        android:visibility="gone"/>
 
 </LinearLayout>

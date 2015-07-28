@@ -7,7 +7,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context="com.vfdev.gettingthingsdonemusicapp.MainFragment"
+    tools:context="com.vfdev.gettingthingsdonemusicapp.Fragments.MainFragment"
     android:background="@drawable/getting_things_done_music">
 
 
@@ -51,7 +51,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/waveform"
         android:scaleType="fitStart"
-        android:src="@drawable/test_waveform"
+        android:src="@android:color/black"
         android:layout_marginTop="@dimen/activity_horizontal_margin2"
         android:layout_below="@+id/playPauseButton"
         android:visibility="invisible"

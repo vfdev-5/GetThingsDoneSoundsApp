@@ -3,7 +3,7 @@
 
     <string name="app_name">GettingThingsDoneMusic</string>
 
-    <!-- Main activity -->
+    <!-- Main activity & Main Fragment-->
     <string name="main_activity_name">Best sounds for GTD</string>
     <string name="action_settings">Settings</string>
     <string name="action_about">About</string>
@@ -14,6 +14,7 @@
     <string name="prev_track">that last one\n was sweet</string>
     <string name="progress_msg">Please wait while retrieving a playlist</string>
     <string name="progress_msg2">New track is loading …</string>
+    <string name="notrack_err">Sorry, no tracks found on your tags</string>
     <string name="connx_err">Ops, there is a problem with internet connection</string>
     <string name="app_err">Ops, there is a problem with the application</string>
     <string name="no_audio_focus_err">Ops, this app can not play music while another app uses audio service</string>
@@ -21,13 +22,18 @@
     <string name="prevtrack_err">Ops, there is a problem to play previous track</string>
     <string name="play_failed">Somehow, app can not play tracks</string>
 
+    <string name="on_track_clicked_menu">Choose option :</string>
+    <string name="mark_as_favorite">Mark as favorite</string>
+    <string name="remove_from_favorite">Remove from favorites</string>
+    <string name="open_in_SC">Open in SoundCloud</string>
+    <string name="download">Download to phone</string>
 
     <!-- Playlist Fragment  -->
     <string name="pf_title">Now played tracks : </string>
 
-    <!-- MusicService -->
-    <string name="soundCloud_client_id">1abbcf4f4c91b04bb5591fe5a9f60821</string>
-    <string name="no_tracks">No tracks</string>
+    <!-- Favorite Tracks Fragment  -->
+    <string name="ftf_title">Favorite tracks : </string>
+    <string name="ftf_play_tracks">Play favorite tracks</string>
 
     <!-- Settings -->
     <string name="settings_dialog_title">Playlist configuration</string>

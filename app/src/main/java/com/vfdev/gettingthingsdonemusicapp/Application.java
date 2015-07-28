@@ -1,7 +1,5 @@
 package com.vfdev.gettingthingsdonemusicapp;
 
-import com.vfdev.gettingthingsdonemusicapp.core.AppDBHandler;
-
 import timber.log.Timber;
 
 /**
@@ -17,11 +15,10 @@ public class Application extends android.app.Application {
             Timber.plant(new CrashReportingTree());
         }
 
-
         // Application DB setup:
-        AppDBHandler handler = new AppDBHandler(getApplicationContext(),
-                getString(R.string.settings_default_tags));
-        handler.close();
+//        AppDBHandler handler = new AppDBHandler(getApplicationContext(),
+//                getString(R.string.settings_default_tags));
+//        handler.close();
 
     }
 
