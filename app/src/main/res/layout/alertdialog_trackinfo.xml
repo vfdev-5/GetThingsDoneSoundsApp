@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:weightSum="1" >
+
+    <ImageView
+        android:layout_width="fill_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/d_artwork"
+        android:alpha="0.3"
+        android:src="@drawable/icon"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignBottom="@+id/d_tags"
+        android:scaleType="matrix" />
+
+    <ImageView
+        android:layout_width="fill_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/d_artwork2"
+        android:alpha="0.5"
+        android:src="@drawable/icon"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignBottom="@+id/d_tags"
+        android:scaleType="fitEnd" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Track title"
+        android:id="@+id/d_title"
+        android:singleLine="true" />
+
+    <ImageView
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:id="@+id/hl1"
+        android:alpha="0.5"
+        android:src="@android:color/white"
+        android:layout_below="@+id/d_title"
+        android:layout_alignParentLeft="true"/>
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="1:10:10"
+        android:id="@+id/d_duration"
+        android:layout_below="@+id/hl1"
+        android:layout_alignParentLeft="true"
+        android:gravity="end" />
+
+    <ImageView
+        android:layout_width="fill_parent"
+        android:layout_height="1dp"
+        android:id="@+id/hl2"
+        android:alpha="0.5"
+        android:src="@android:color/white"
+        android:layout_below="@+id/d_duration"
+        android:layout_alignParentLeft="true"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:id="@+id/d_tags"
+        android:text="@string/trackinfo_dialog_notags"
+        android:selectAllOnFocus="false"
+        android:gravity="center|top"
+        android:layout_below="@+id/hl2"
+        android:layout_alignParentLeft="true" />
+
+
+
+
+</RelativeLayout>

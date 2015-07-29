@@ -1,10 +1,12 @@
-package com.vfdev.gettingthingsdonemusicapp;
+package com.vfdev.gettingthingsdonemusicapp.Dialogs;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import com.vfdev.gettingthingsdonemusicapp.R;
 
 /**
  * Helper class to create a Settings dialog

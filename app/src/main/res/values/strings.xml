@@ -33,7 +33,8 @@
 
     <!-- Favorite Tracks Fragment  -->
     <string name="ftf_title">Favorite tracks : </string>
-    <string name="ftf_play_tracks">Play favorite tracks</string>
+    <string name="ftf_play_tracks">Add to playlist</string>
+    <string name="ftf_play_tracks_OK">Tracks are loaded to the playlist</string>
 
     <!-- Settings -->
     <string name="settings_dialog_title">Playlist configuration</string>
@@ -41,6 +42,10 @@
     <string name="settings_update">Update</string>
     <string name="settings_default">Default</string>
     <string name="settings_default_tags">trance, Armin van Buuren, Dash Berlin, A State Of Trance</string>
+
+    <!-- TrackInfo -->
+    <string name="trackinfo_dialog_notags">No tags</string>
+
 
     <!-- About -->
     <string name="about_dialog_title">About</string>

@@ -1,16 +1,13 @@
 package com.vfdev.gettingthingsdonemusicapp;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.ProgressDialog;
 import android.content.SharedPreferences;
-import android.content.DialogInterface;
 import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.net.Uri;
 
 import android.os.Bundle;
 import android.view.Menu;
@@ -23,13 +20,13 @@ import java.util.List;
 import butterknife.ButterKnife;
 import timber.log.Timber;
 
-import com.j256.ormlite.android.apptools.OpenHelperManager;
-import com.j256.ormlite.dao.RuntimeExceptionDao;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.vfdev.gettingthingsdonemusicapp.DB.DBTrackInfo;
-import com.vfdev.gettingthingsdonemusicapp.DB.DatabaseHelper;
 import com.vfdev.gettingthingsdonemusicapp.Fragments.FavoriteTracksFragment;
 import com.vfdev.gettingthingsdonemusicapp.Fragments.MainFragment;
 import com.vfdev.gettingthingsdonemusicapp.Fragments.PlaylistFragment;
+import com.vfdev.gettingthingsdonemusicapp.Dialogs.SettingsDialog;
 import com.vfdev.mimusicservicelib.MusicService;
 import com.vfdev.mimusicservicelib.MusicServiceHelper;
 import com.vfdev.mimusicservicelib.core.MusicPlayer;
@@ -80,9 +77,7 @@ import de.greenrobot.event.EventBus;
  */
 
 public class MainActivity extends Activity implements
-        SettingsDialog.SettingsDialogCallback,
-        MainFragment.OnTrackClickListener,
-        FavoriteTracksFragment.OnPlayFavoriteTracksListener
+        SettingsDialog.SettingsDialogCallback
 {
 
     // UI
@@ -101,9 +96,6 @@ public class MainActivity extends Activity implements
     // Toast dialog
     private Toast mToast;
 
-    private DatabaseHelper mDBHandler;
-    private RuntimeExceptionDao<DBTrackInfo, String> mREDao;
-
     // ------- Activity methods
 
     @Override
@@ -118,10 +110,13 @@ public class MainActivity extends Activity implements
         setTitle(R.string.main_activity_name);
 
         // setup MusicServiceHelper
-        mMSHelper = new MusicServiceHelper(this, new SoundCloundProvider(), MainActivity.class);
+        mMSHelper = MusicServiceHelper.getInstance().init(this, new SoundCloundProvider(), MainActivity.class);
+        mMSHelper.startMusicService();
 
-        // DB
-        setupDB();
+        // setup UIL
+        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this).build();
+        ImageLoader.getInstance().init(config);
+
 
         // initialize some fragments (uses mMSHelper)
         setupPagerUI();
@@ -130,8 +125,6 @@ public class MainActivity extends Activity implements
         mToast = Toast.makeText(getApplicationContext(), "", Toast.LENGTH_LONG);
 
         EventBus.getDefault().register(this);
-
-        mMSHelper.startMusicService();
 
     }
 
@@ -166,14 +159,8 @@ public class MainActivity extends Activity implements
         Timber.v("onDestroy");
 
         mMSHelper.release();
+        ImageLoader.getInstance().destroy();
         EventBus.getDefault().unregister(this);
-
-        // Close database connection
-        if (mDBHandler != null) {
-            OpenHelperManager.releaseHelper();
-            mDBHandler = null;
-        }
-
         super.onDestroy();
     }
 
@@ -243,58 +230,9 @@ public class MainActivity extends Activity implements
         }
     }
 
-    // --------- MainFragment.OnTrackClickListener
-
-    @Override
-    public void onClick(TrackInfo info) {
-
-        // Open Alert dialog :
-        // 1) Mark/Unmark as 'Favorite' (!!!)
-        // 2) Open in SoundCloud
-        // 3) Download to phone (or already downloaded)
-
-        final TrackInfo trackInfo = info;
-        final boolean isFavorite = mREDao.idExists(trackInfo.id);
-        final CharSequence [] trackChoices = new CharSequence[2];
-        if (!isFavorite) {
-            trackChoices[0] = getString(R.string.mark_as_favorite);
-        } else {
-            trackChoices[0] = getString(R.string.remove_from_favorite);
-        }
-
-        trackChoices[1] = getString(R.string.open_in_SC);
-//        trackChoices[2] = getString(R.string.download);
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.on_track_clicked_menu)
-                .setItems(trackChoices, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // The 'which' argument contains the index position
-                        // of the selected item
-                        if (which == 0) {
-                            // Mark/Unmark as 'Favorite'
-                            mPlaylistFragment.setFavorite(!isFavorite, trackInfo);
-                        } else if (which == 2) {
-                            // Download to phone
-
-                        } else if (which == 1) {
-                            // Open in SoundCloud
-                            if (trackInfo.fullInfo.containsKey("permalink_url")) {
-                                Uri uri = Uri.parse(trackInfo.fullInfo.get("permalink_url"));
-                                Intent i = new Intent(Intent.ACTION_VIEW, uri);
-                                startActivity(i);
-                            }
-                        }
-                    }
-                });
-        AlertDialog dialog = builder.create();
-        dialog.show();
-
-    }
-
     // --------- FavoriteTracksFragment.OnPlayFavoriteTracksListener
 
-    @Override
+//    @Override
     public void onPlay(List<DBTrackInfo> tracks) {
         Timber.v("onPlay");
         if (mMSHelper.getPlayer() != null) {
@@ -325,11 +263,7 @@ public class MainActivity extends Activity implements
 
         // Create fragments:
         mMainFragment = new MainFragment();
-        mMainFragment.setHelper(mMSHelper);
-
         mPlaylistFragment = new PlaylistFragment();
-        mPlaylistFragment.setHelper(mMSHelper);
-
         mFavoriteTracksFragment = new FavoriteTracksFragment();
 
         // Create pager adapter
@@ -349,20 +283,6 @@ public class MainActivity extends Activity implements
             }
         });
 
-    }
-
-    private void setupDB() {
-        Timber.v("Setup DB");
-        mDBHandler = OpenHelperManager.getHelper(this, DatabaseHelper.class);
-        mREDao = mDBHandler.getTrackInfoREDao();
-    }
-
-    // -------------- Get DatabaseHelper
-    private DatabaseHelper getHelper() {
-        if (mDBHandler == null) {
-            mDBHandler = OpenHelperManager.getHelper(this, DatabaseHelper.class);
-        }
-        return mDBHandler;
     }
 
     private void exit() {

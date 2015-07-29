@@ -1,8 +1,12 @@
 package com.vfdev.gettingthingsdonemusicapp.Fragments;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.view.LayoutInflater;
@@ -10,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -26,6 +31,7 @@ import com.j256.ormlite.android.apptools.OpenHelperManager;
 import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.vfdev.gettingthingsdonemusicapp.DB.DBTrackInfo;
 import com.vfdev.gettingthingsdonemusicapp.DB.DatabaseHelper;
+import com.vfdev.gettingthingsdonemusicapp.Dialogs.TrackInfoDialog;
 import com.vfdev.gettingthingsdonemusicapp.R;
 import com.vfdev.mimusicservicelib.MusicService;
 import com.vfdev.mimusicservicelib.MusicServiceHelper;
@@ -35,8 +41,7 @@ import com.vfdev.mimusicservicelib.core.TrackInfo;
 /**
  * Playlist fragment
  */
-public class PlaylistFragment extends Fragment implements
-//        MusicService.OnTrackListUpdateListener,
+public class PlaylistFragment extends BaseFragment implements
         ListView.OnItemClickListener,
         View.OnClickListener
 {
@@ -48,18 +53,9 @@ public class PlaylistFragment extends Fragment implements
     private Drawable mStarOn;
     private Drawable mStarOff;
 
-    // DB handler
-    private DatabaseHelper mDBHandler;
-    private RuntimeExceptionDao<DBTrackInfo, String> mREDao;
-
     // Playlist
     private PlaylistAdapter mAdapter;
 
-    // Music Service
-    private MusicServiceHelper mMSHelper;
-
-
-    private boolean needRestoreUi = false;
 
     // ----------- Fragment method
 
@@ -67,28 +63,17 @@ public class PlaylistFragment extends Fragment implements
         // Required empty public constructor
     }
 
-
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         Timber.v("onAttach");
-
-    }
-
-    @Override
-    public void onCreate(Bundle bundle) {
-        super.onCreate(bundle);
-        Timber.v("onCreate");
+        mAdapter = new PlaylistAdapter(activity);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         Timber.v("onCreateView");
-
-        EventBus.getDefault().register(this);
-        mAdapter = new PlaylistAdapter(getActivity());
-        mREDao = getHelper().getTrackInfoREDao();
 
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_playlist, container, false);
@@ -106,30 +91,11 @@ public class PlaylistFragment extends Fragment implements
     }
 
     @Override
-    public void onPause() {
-        Timber.v("onPause");
-        super.onPause();
-    }
-
-    @Override
-    public void onActivityCreated(Bundle bundle) {
-        super.onActivityCreated(bundle);
-        Timber.v("onActivityCreated");
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        Timber.v("onStart");
-    }
-
-    @Override
     public void onResume(){
         Timber.v("onResume");
         super.onResume();
 
         // restore UI state:
-        if (!checkMusicServiceHelper()) return;
         ArrayList<TrackInfo> trackHistory = mMSHelper.getTracksHistory();
         if (needRestoreUi &&
                 trackHistory != null) {
@@ -137,42 +103,10 @@ public class PlaylistFragment extends Fragment implements
         }
     }
 
-    @Override
-    public void onStop() {
-        Timber.v("onStop");
-        super.onStop();
-    }
-
-    @Override
-    public void onDestroyView() {
-        Timber.v("onDestroyView");
-
-        EventBus.getDefault().unregister(this);
-        if (mDBHandler != null) {
-            OpenHelperManager.releaseHelper();
-            mDBHandler = null;
-        }
-        super.onDestroyView();
-    }
-
-    @Override
-    public void onDestroy() {
-        Timber.v("onDestroy");
-        mMSHelper = null;
-        super.onDestroy();
-    }
-
-    @Override
-    public void onDetach() {
-        Timber.v("onDetach");
-        super.onDetach();
-    }
-
     // ----------- MusicServiceHelper.ReadyEvent
 
     public void onEvent(MusicServiceHelper.ReadyEvent event) {
         Timber.v("onReady");
-        if (!checkMusicServiceHelper()) return;
 
         ArrayList<TrackInfo> trackHistory = mMSHelper.getTracksHistory();
         if (needRestoreUi &&
@@ -185,13 +119,20 @@ public class PlaylistFragment extends Fragment implements
 
     public void onEvent(MusicPlayer.StateEvent event) {
 
-        if (!checkMusicServiceHelper()) return;
-
         if (event.state == MusicPlayer.State.Playing) {
             Timber.v("onUpdate");
 //            if (mAdapter != null) {
             fillPlaylist(mMSHelper.getTracksHistory());
 //            }
+        }
+    }
+
+    // ----------- DBChangedEvent
+
+    public void onEvent(DBChangedEvent event) {
+        if (event.type == DBChangedEvent.EVENT_ITEM_CREATED ||
+                event.type == DBChangedEvent.EVENT_ITEM_DELETED) {
+            mAdapter.notifyDataSetChanged();
         }
     }
 
@@ -219,89 +160,41 @@ public class PlaylistFragment extends Fragment implements
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
         Timber.v("onItemClick");
-////        ImageView star = (ImageView) view.findViewById(R.id.p_item_trackStar);
-//        ImageView star = (ImageView) view;
-//        if (star != null) {
-//            UserTrackInfo t = (UserTrackInfo) adapterView.getItemAtPosition(position);
-//            onTrackStarClicked( star, t);
-////            return;
-//        }
+
+        TextView title = (TextView) view.findViewById(R.id.p_item_trackTitle);
+        if (title != null) {
+            openDialogOnTrack(mAdapter.getItem(position));
+        }
+
     }
 
-    private void onTrackStarClicked(ImageView star, DBTrackInfo uTrack) {
+    private void onTrackStarClicked(ImageView star, TrackInfo uTrack) {
         Timber.v("onTrackStarClicked");
-        try {
-            if (star.getDrawable() == mStarOn) {
-                // remove from favorites
-                mREDao.deleteById(uTrack.id);
-                star.setImageDrawable(mStarOff);
-            } else if (star.getDrawable() == mStarOff) {
-                // add as favorite:
-                uTrack.isStarred = true;
-                mREDao.create(uTrack);
-                star.setImageDrawable(mStarOn);
-            }
-        } catch (RuntimeException e) {
-            Timber.e("DB problem", e);
+        if (star.getDrawable() == mStarOn) {
+            // remove from favorites
+            daoDeleteById(uTrack.id);
+            star.setImageDrawable(mStarOff);
+        } else if (star.getDrawable() == mStarOff) {
+            // add as favorite:
+//            uTrack.isStarred = true;
+            daoCreate(new DBTrackInfo(uTrack));
+            star.setImageDrawable(mStarOn);
         }
     }
-
 
     // ----------- Other methods
-
-    public void setHelper(MusicServiceHelper helper) {
-        mMSHelper = helper;
-    }
-
-    public void setFavorite(boolean isFavorite, TrackInfo trackInfo) {
-        try {
-            if (isFavorite) {
-                mREDao.deleteById(trackInfo.id);
-            } else {
-                mREDao.create(new DBTrackInfo(trackInfo));
-            }
-        } catch (RuntimeException e) {
-            Timber.e("DB problem", e);
-        }
-        int count = mAdapter.getCount()-1;
-        while (count >= 0) {
-            DBTrackInfo uTrack = mAdapter.getItem(count);
-            if (uTrack.id.compareTo(trackInfo.id)==0){
-                uTrack.isStarred = isFavorite;
-                mAdapter.notifyDataSetChanged();
-                break;
-            }
-            count--;
-        }
-    }
-
-    private boolean checkMusicServiceHelper()
-    {
-        if (mMSHelper == null) {
-            Timber.v("mMSHelper is null");
-            return false;
-        }
-        return true;
-    }
 
     private void fillPlaylist(List<TrackInfo> tracks){
         Timber.v("fillPlaylist");
 
-        List<DBTrackInfo> uTracks = new ArrayList<>();
-        for (TrackInfo track : tracks) {
-            DBTrackInfo uTrack = new DBTrackInfo(track);
-            uTrack.isStarred = mREDao.idExists(track.id);
-            uTracks.add(uTrack);
-        }
-
         mAdapter.clear();
-        mAdapter.addAll(uTracks);
+        mAdapter.addAll(tracks);
 
     }
 
     // ----------- PlaylistAdapter
 
-    private class PlaylistAdapter extends ArrayAdapter<DBTrackInfo> {
+    private class PlaylistAdapter extends ArrayAdapter<TrackInfo> {
 
         LayoutInflater inflater = getActivity().getLayoutInflater();
 
@@ -327,11 +220,12 @@ public class PlaylistFragment extends Fragment implements
                 h = (TrackViewHolder) convertView.getTag();
             }
 
-            DBTrackInfo t = getItem(position);
+            TrackInfo t = getItem(position);
             h.title.setText(t.title);
             h.tags.setText(t.tags);
             h.duration.setText(MusicPlayer.getDuration(t.duration));
-            h.star.setImageDrawable(t.isStarred ? mStarOn : mStarOff);
+//            h.star.setImageDrawable(t.isStarred ? mStarOn : mStarOff);
+            h.star.setImageDrawable(mREDao.idExists(t.id) ? mStarOn : mStarOff);
 
             return convertView;
         }
@@ -343,14 +237,6 @@ public class PlaylistFragment extends Fragment implements
         TextView tags;
         TextView duration;
         ImageView star;
-    }
-
-    // -------------- Get DatabaseHelper
-    private DatabaseHelper getHelper() {
-        if (mDBHandler == null) {
-            mDBHandler = OpenHelperManager.getHelper(getActivity(), DatabaseHelper.class);
-        }
-        return mDBHandler;
     }
 
 

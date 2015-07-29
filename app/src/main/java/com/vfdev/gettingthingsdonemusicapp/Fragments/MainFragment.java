@@ -2,9 +2,13 @@ package com.vfdev.gettingthingsdonemusicapp.Fragments;
 
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.os.CountDownTimer;
@@ -21,6 +25,7 @@ import android.widget.Toast;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
+import com.vfdev.gettingthingsdonemusicapp.DB.DBTrackInfo;
 import com.vfdev.gettingthingsdonemusicapp.R;
 import com.vfdev.gettingthingsdonemusicapp.WaveformView;
 import com.vfdev.mimusicservicelib.MusicServiceHelper;
@@ -38,7 +43,7 @@ import timber.log.Timber;
 /**
  * A simple {@link Fragment} subclass.
  */
-public class MainFragment extends Fragment
+public class MainFragment extends BaseFragment
 {
 
     // Ui
@@ -67,20 +72,8 @@ public class MainFragment extends Fragment
     @InjectView(R.id.waveform)
     protected WaveformView mTrackWaveform;
 
-    // Toast dialog
-    private Toast mToast;
-
-    // flag to restore ui at onReady() or onPause() methods
-    private boolean needRestoreUi=false;
-
     // Track countdown timer:
     private _CountDownTimer mTimer;
-
-    // On Track Click Listener
-    private OnTrackClickListener mOnTrackClickListener;
-
-    // MusicServiceHelper
-    private MusicServiceHelper mMSHelper;
 
     // ImageLoader onLoadingComplete Callback instance
     _SimpleImageLoadingListener mLoadingListener;
@@ -91,28 +84,12 @@ public class MainFragment extends Fragment
         // Required empty public constructor
     }
 
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        Timber.v("onAttach");
-    }
-
-    @Override
-    public void onCreate(Bundle bundle) {
-        super.onCreate(bundle);
-        Timber.v("onCreate");
-    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         Timber.v("onCreateView");
 
-        mToast = Toast.makeText(getActivity().getApplicationContext(), "", Toast.LENGTH_LONG);
-        mOnTrackClickListener = (OnTrackClickListener) getActivity();
-        EventBus.getDefault().register(this);
-        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(getActivity()).build();
-        ImageLoader.getInstance().init(config);
         mLoadingListener = new _SimpleImageLoadingListener();
 
         // Inflate the layout for this fragment
@@ -144,21 +121,7 @@ public class MainFragment extends Fragment
     public void onPause() {
         Timber.v("onPause");
         super.onPause();
-
         mTimer.cancel();
-        needRestoreUi = true;
-    }
-
-    @Override
-    public void onActivityCreated(Bundle bundle) {
-        super.onActivityCreated(bundle);
-        Timber.v("onActivityCreated");
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-        Timber.v("onStart");
     }
 
     @Override
@@ -166,7 +129,6 @@ public class MainFragment extends Fragment
         Timber.v("onResume");
         super.onResume();
 
-        if (!checkMusicServiceHelper()) return;
         // restore UI state:
         TrackInfo trackInfo = mMSHelper.getPlayingTrackInfo();
         ArrayList<TrackInfo> trackHistory = mMSHelper.getTracksHistory();
@@ -178,30 +140,9 @@ public class MainFragment extends Fragment
     }
 
     @Override
-    public void onStop() {
-        Timber.v("onStop");
-        super.onStop();
-    }
-
-    @Override
     public void onDestroyView() {
         Timber.v("onDestroyView");
-        EventBus.getDefault().unregister(this);
-        ImageLoader.getInstance().destroy();
         super.onDestroyView();
-    }
-
-    @Override
-    public void onDestroy() {
-        Timber.v("onDestroy");
-        mMSHelper = null;
-        super.onDestroy();
-    }
-
-    @Override
-    public void onDetach() {
-        Timber.v("onDetach");
-        super.onDetach();
     }
 
     // ------ Button callbacks
@@ -209,8 +150,6 @@ public class MainFragment extends Fragment
     @OnClick(R.id.playPauseButton)
     public void onPlayPauseButtonClicked(View view) {
         Timber.v("onPlayPauseButtonClicked");
-
-        if (!checkMusicServiceHelper()) return;
 
         // make button responsible :
         if (isPlaying) {
@@ -233,8 +172,6 @@ public class MainFragment extends Fragment
     public void onNextTrackButtonClicked(View view) {
         Timber.v("onNextTrackButtonClicked");
 
-        if (!checkMusicServiceHelper()) return;
-
         // animate button
         mNextTrackButton.startAnimation(mAnimation);
 
@@ -254,8 +191,6 @@ public class MainFragment extends Fragment
     public void onPrevTrackButtonClicked(View view) {
         Timber.v("onPrevTrackButtonClicked");
 
-        if (!checkMusicServiceHelper()) return;
-
         // animate button
         mPrevTrackButton.startAnimation(mAnimation);
 
@@ -274,20 +209,10 @@ public class MainFragment extends Fragment
     @OnClick(R.id.trackTitle)
     public void onTrackTitleClicked(View view) {
         Timber.v("onTrackTitleClicked");
-        if (!checkMusicServiceHelper()) return;
 
         TrackInfo trackInfo = mMSHelper.getPlayingTrackInfo();
-        if (mOnTrackClickListener != null) {
-            mOnTrackClickListener.onClick(trackInfo);
-        }
+        openDialogOnTrack(trackInfo);
     }
-
-    // ----------- OnTrackClickListener
-
-    public interface OnTrackClickListener {
-        public void onClick(TrackInfo trackInfo);
-    }
-
 
     // ----------- CountDownTimer
 
@@ -311,7 +236,6 @@ public class MainFragment extends Fragment
 
     public void onEvent(MusicServiceHelper.ReadyEvent event) {
         Timber.v("onReady");
-        if (!checkMusicServiceHelper()) return;
 
         TrackInfo trackInfo = mMSHelper.getPlayingTrackInfo();
         ArrayList<TrackInfo> trackHistory = mMSHelper.getTracksHistory();
@@ -325,7 +249,6 @@ public class MainFragment extends Fragment
     // ----------- MusicPlayer.StateEvent
 
     public void onEvent(MusicPlayer.StateEvent event) {
-        if (!checkMusicServiceHelper()) return;
 
         if (event.state == MusicPlayer.State.Playing) {
             Timber.v("onEvent : Playing");
@@ -362,24 +285,6 @@ public class MainFragment extends Fragment
     }
 
     // ----------- Other methods
-
-    public void setHelper(MusicServiceHelper helper) {
-        mMSHelper = helper;
-    }
-
-    private void showMessage(String msg) {
-        mToast.setText(msg);
-        mToast.show();
-    }
-
-    private boolean checkMusicServiceHelper()
-    {
-        if (mMSHelper == null) {
-            Timber.v("mMSHelper is null");
-            return false;
-        }
-        return true;
-    }
 
     private void restoreUiState(TrackInfo trackInfo, int trackHistoryCount) {
         Timber.v("restoreUiState");
@@ -419,7 +324,9 @@ public class MainFragment extends Fragment
         }
 
         if (trackInfo.duration >= 0) {
+            Timber.v("Track duration 1 : " + trackInfo.duration);
             mTrackDuration.setText(getRemainingDuration(trackInfo.duration));
+            Timber.v("Track duration 2 : " + mTrackDuration.getText().toString());
             mTrackDuration.setVisibility(View.VISIBLE);
             if (mNextTrackButton.getVisibility() == View.INVISIBLE) {
                 mNextTrackButton.setVisibility(View.VISIBLE);
@@ -462,6 +369,56 @@ public class MainFragment extends Fragment
         }
         return String.format("-%02d:%02d", minutes, seconds);
     }
+
+    @Override
+    protected void openDialogOnTrack(final TrackInfo track) {
+        // Open Alert dialog :
+        // 1) Mark/Unmark as 'Favorite' (!!!)
+        // 2) Open in SoundCloud
+        // 3) Download to phone (or already downloaded)
+        final DBTrackInfo trackInfo = new DBTrackInfo(track);
+        final boolean isFavorite = mREDao.idExists(trackInfo.id);
+        final CharSequence [] trackChoices = new CharSequence[2];
+        if (!isFavorite) {
+            trackChoices[0] = getString(R.string.mark_as_favorite);
+        } else {
+            trackChoices[0] = getString(R.string.remove_from_favorite);
+        }
+
+        trackChoices[1] = getString(R.string.open_in_SC);
+//        trackChoices[2] = getString(R.string.download);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+        builder.setTitle(R.string.on_track_clicked_menu)
+                .setItems(trackChoices, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // The 'which' argument contains the index position
+                        // of the selected item
+                        if (which == 0) {
+                            // Mark/Unmark as 'Favorite'
+                            if (isFavorite) {
+                                daoDeleteById(trackInfo.id);
+                            } else {
+//                                trackInfo.isStarred = true;
+                                daoCreate(trackInfo);
+                            }
+                        } else if (which == 2) {
+                            // Download to phone
+
+                        } else if (which == 1) {
+                            // Open in SoundCloud
+                            if (trackInfo.trackInfo.fullInfo.containsKey("permalink_url")) {
+                                Uri uri = Uri.parse(trackInfo.trackInfo.fullInfo.get("permalink_url"));
+                                Intent i = new Intent(Intent.ACTION_VIEW, uri);
+                                startActivity(i);
+                            }
+                        }
+                    }
+                });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
 
     // ----------- ImageLoader onLoadingComplete listener
 

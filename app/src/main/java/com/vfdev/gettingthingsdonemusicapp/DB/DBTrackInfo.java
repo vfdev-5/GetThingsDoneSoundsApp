@@ -1,5 +1,6 @@
 package com.vfdev.gettingthingsdonemusicapp.DB;
 
+import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.vfdev.mimusicservicelib.core.TrackInfo;
 
@@ -26,10 +27,8 @@ public class DBTrackInfo  {
     @DatabaseField
     public String waveformUrl;
 
-    @DatabaseField
-    public boolean isStarred = false;
 
-
+    @DatabaseField(dataType = DataType.SERIALIZABLE)
     public TrackInfo trackInfo;
 
     public DBTrackInfo() {

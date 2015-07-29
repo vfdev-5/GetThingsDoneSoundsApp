@@ -21,6 +21,7 @@ import com.j256.ormlite.android.apptools.OpenHelperManager;
 import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.vfdev.gettingthingsdonemusicapp.DB.DBTrackInfo;
 import com.vfdev.gettingthingsdonemusicapp.DB.DatabaseHelper;
+import com.vfdev.gettingthingsdonemusicapp.Dialogs.TrackInfoDialog;
 import com.vfdev.gettingthingsdonemusicapp.R;
 import com.vfdev.mimusicservicelib.core.MusicPlayer;
 import com.vfdev.mimusicservicelib.core.TrackInfo;
@@ -36,9 +37,8 @@ import timber.log.Timber;
 /**
  * Fragment to display favorite track
  */
-public class FavoriteTracksFragment extends Fragment implements
+public class FavoriteTracksFragment extends BaseFragment implements
         ListView.OnItemClickListener,
-//        AppDBHandler.OnDBContentChangeListener,
         View.OnClickListener
 {
 
@@ -55,15 +55,8 @@ public class FavoriteTracksFragment extends Fragment implements
 //    private Drawable mNotDownloaded;
 //    private Drawable mDownloaded;
 
-    // DB handler
-    private DatabaseHelper mDBHandler;
-    private RuntimeExceptionDao<DBTrackInfo, String> mREDao;
-
     // Tracks list
     private FavoriteTracksAdapter mAdapter;
-
-    // OnPlayFavoriteTracksListener
-    OnPlayFavoriteTracksListener mListener;
 
     // ------------ Fragment methods
 
@@ -84,9 +77,6 @@ public class FavoriteTracksFragment extends Fragment implements
                 Animation.RELATIVE_TO_SELF, 0,
                 Animation.RELATIVE_TO_SELF, 0.05f);
         mAnimation.setDuration(150);
-
-        mListener = (OnPlayFavoriteTracksListener) activity;
-
     }
 
     @Override
@@ -107,8 +97,6 @@ public class FavoriteTracksFragment extends Fragment implements
 //        mCannotDownload = getResources().getDrawable(android.R.color.black);
 //        mDownloaded = getResources().getDrawable(R.drawable.downloaded);
 //        mNotDownloaded = getResources().getDrawable(R.drawable.not_downloaded);
-
-        mREDao = getHelper().getTrackInfoREDao();
 
         mFavoriteTracksView.setOnItemClickListener(this);
         mFavoriteTracksView.setAdapter(mAdapter);
@@ -177,21 +165,19 @@ public class FavoriteTracksFragment extends Fragment implements
     public void onPlayTracks(View view) {
         Timber.v("Play favorite tracks");
         mPlayTracks.startAnimation(mAnimation);
-        if (mListener != null) {
-            mListener.onPlay(mREDao.queryForAll());
-        }
+        playFavoriteTracks(mREDao.queryForAll());
+        showMessage(getString(R.string.ftf_play_tracks_OK));
     }
 
-    // ----------- OnDBContentChangeListener
+    // ----------- DBChangedState
 
-//    @Override
-//    public void onDBContentChanged(String table) {
-//        if (mAdapter != null) {
-//            if (table == AppDBHandler.DB_TABLE_FAVORITE_TRACKS) {
-//                fillFavoriteTracks(mDBHandler.getFavoriteTracks());
-//            }
-//        }
-//    }
+    public void onEvent(DBChangedEvent event) {
+        if (event.type == DBChangedEvent.EVENT_ITEM_CREATED ||
+                event.type == DBChangedEvent.EVENT_ITEM_DELETED) {
+            fillFavoriteTracks(mREDao.queryForAll());
+            mAdapter.notifyDataSetChanged();
+        }
+    }
 
     // ----------- List item
 
@@ -209,6 +195,12 @@ public class FavoriteTracksFragment extends Fragment implements
 //            onTrackDownloadClicked(download, t);
 ////            return;
 //        }
+
+        TextView title = (TextView) view.findViewById(R.id.ft_item_trackTitle);
+        if (title != null) {
+            openDialogOnTrack(mAdapter.getItem(position).trackInfo);
+        }
+
     }
 
 //    private void onTrackDownloadClicked(ImageView download, DBTrackInfo fTrack) {
@@ -240,11 +232,6 @@ public class FavoriteTracksFragment extends Fragment implements
 
     // ----------- Other methods
 
-//    public void setDBHandler(AppDBHandler handler) {
-//        mDBHandler = handler;
-//        mDBHandler.setOnDBContentChangeListener(this);
-//    }
-
 
     private void fillFavoriteTracks(List<DBTrackInfo> tracks){
         Timber.v("fillFavoriteTracks");
@@ -253,11 +240,12 @@ public class FavoriteTracksFragment extends Fragment implements
         mAdapter.addAll(tracks);
     }
 
-    // ----------- OnPlayFavoriteTracksListener
-    public interface OnPlayFavoriteTracksListener {
-        public void onPlay(List<DBTrackInfo> tracks);
+    private void playFavoriteTracks(List<DBTrackInfo> tracks) {
+        mMSHelper.clearPlaylist();
+        for (DBTrackInfo t : tracks) {
+            mMSHelper.getPlayer().addTrack(t.trackInfo);
+        }
     }
-
 
     // ----------- FavoriteTracksAdapter
 
@@ -305,15 +293,5 @@ public class FavoriteTracksFragment extends Fragment implements
         TextView duration;
 //        ImageView download;
     }
-
-
-    // -------------- Get DatabaseHelper
-    private DatabaseHelper getHelper() {
-        if (mDBHandler == null) {
-            mDBHandler = OpenHelperManager.getHelper(getActivity(), DatabaseHelper.class);
-        }
-        return mDBHandler;
-    }
-
 
 }
