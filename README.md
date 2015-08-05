@@ -25,3 +25,14 @@ This app is for those who need a music while working, walking, doing a sport or 
 <img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_6_v2.0.png" width="200"/>
 <img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_7_v2.0.png" width="200"/>
 </p>
+
+
+## Dependencies on cool open-source stuff :
+
+- <a href="https://github.com/JakeWharton/butterknife">com.jakewharton.butterknife</a>
+- <a href="https://github.com/nostra13/Android-Universal-Image-Loader">universal-image-loader</a>
+- <a href="https://github.com/square/okhttp">com.squareup.okhttp</a>
+- <a href="https://github.com/greenrobot/EventBus">de.greenrobot.eventbus</a>
+- <a href="https://github.com/j256/ormlite-android">com.j256.ormlite for android</a>
+- <a href="https://github.com/vfdev-5/miMusicService">miMusicService</a>
+
