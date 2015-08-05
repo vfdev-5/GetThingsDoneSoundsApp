@@ -27,7 +27,7 @@ This app is for those who need a music while working, walking, doing a sport or 
 </p>
 
 
-## Dependencies on cool open-source stuff :
+## Depends on cool open-source stuff :
 
 - <a href="https://github.com/JakeWharton/butterknife">com.jakewharton.butterknife</a>
 - <a href="https://github.com/nostra13/Android-Universal-Image-Loader">universal-image-loader</a>
