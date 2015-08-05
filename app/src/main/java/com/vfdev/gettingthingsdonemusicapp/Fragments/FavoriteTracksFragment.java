@@ -1,11 +1,8 @@
 package com.vfdev.gettingthingsdonemusicapp.Fragments;
 
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,20 +10,15 @@ import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.j256.ormlite.android.apptools.OpenHelperManager;
-import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.vfdev.gettingthingsdonemusicapp.DB.DBTrackInfo;
-import com.vfdev.gettingthingsdonemusicapp.DB.DatabaseHelper;
 import com.vfdev.gettingthingsdonemusicapp.Dialogs.TrackInfoDialog;
 import com.vfdev.gettingthingsdonemusicapp.R;
 import com.vfdev.mimusicservicelib.core.MusicPlayer;
-import com.vfdev.mimusicservicelib.core.TrackInfo;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.ButterKnife;
@@ -198,7 +190,8 @@ public class FavoriteTracksFragment extends BaseFragment implements
 
         TextView title = (TextView) view.findViewById(R.id.ft_item_trackTitle);
         if (title != null) {
-            openDialogOnTrack(mAdapter.getItem(position).trackInfo);
+            openDialogOnTrack(mAdapter.getItem(position).trackInfo,
+                    TrackInfoDialog.PLAY_BUTTON | TrackInfoDialog.REMOVE_BUTTON);
         }
 
     }
@@ -265,6 +258,7 @@ public class FavoriteTracksFragment extends BaseFragment implements
             if (null == convertView) {
                 convertView = inflater.inflate(R.layout.favorite_track_item, null);
                 h = new TrackViewHolder();
+                h.id = (TextView) convertView.findViewById(R.id.ft_item_id);
                 h.title = (TextView) convertView.findViewById(R.id.ft_item_trackTitle);
                 h.tags = (TextView) convertView.findViewById(R.id.ft_item_tags);
                 h.duration = (TextView) convertView.findViewById(R.id.ft_item_trackDuration);
@@ -277,8 +271,9 @@ public class FavoriteTracksFragment extends BaseFragment implements
 
 
             DBTrackInfo t = getItem(position);
+            h.id.setText(String.valueOf(position+1));
             h.title.setText(t.title);
-            h.tags.setText(t.tags);
+            h.tags.setText(t.tags.isEmpty() ? getString(R.string.trackinfo_dialog_notags) : t.tags);
             h.duration.setText(MusicPlayer.getDuration(t.duration));
 //            h.download.setImageDrawable(t.pathOnPhone.isEmpty() ? mNotDownloaded : mDownloaded);
 
@@ -288,6 +283,7 @@ public class FavoriteTracksFragment extends BaseFragment implements
     }
 
     private static class TrackViewHolder {
+        TextView id;
         TextView title;
         TextView tags;
         TextView duration;

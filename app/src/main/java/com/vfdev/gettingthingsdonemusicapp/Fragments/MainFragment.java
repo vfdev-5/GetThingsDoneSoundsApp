@@ -1,11 +1,9 @@
 package com.vfdev.gettingthingsdonemusicapp.Fragments;
 
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -20,10 +18,8 @@ import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 import com.vfdev.gettingthingsdonemusicapp.DB.DBTrackInfo;
 import com.vfdev.gettingthingsdonemusicapp.R;
@@ -37,7 +33,6 @@ import java.util.ArrayList;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 import butterknife.OnClick;
-import de.greenrobot.event.EventBus;
 import timber.log.Timber;
 
 /**
@@ -120,8 +115,8 @@ public class MainFragment extends BaseFragment
     @Override
     public void onPause() {
         Timber.v("onPause");
-        super.onPause();
         mTimer.cancel();
+        super.onPause();
     }
 
     @Override
@@ -211,7 +206,7 @@ public class MainFragment extends BaseFragment
         Timber.v("onTrackTitleClicked");
 
         TrackInfo trackInfo = mMSHelper.getPlayingTrackInfo();
-        openDialogOnTrack(trackInfo);
+        openDialogOnTrack(trackInfo, 0);
     }
 
     // ----------- CountDownTimer
@@ -343,8 +338,8 @@ public class MainFragment extends BaseFragment
     }
 
     private void adjustTrackDurationInfo() {
-
         if (mMSHelper.getPlayer() != null) {
+            Timber.i("--- adjustTrackDurationInfo");
             int duration = mMSHelper.getPlayer().getTrackDuration();
             int currentPosition = mMSHelper.getPlayer().getTrackCurrentPosition();
             int remaining = duration - currentPosition;
@@ -371,7 +366,7 @@ public class MainFragment extends BaseFragment
     }
 
     @Override
-    protected void openDialogOnTrack(final TrackInfo track) {
+    protected void openDialogOnTrack(final TrackInfo track, int flags) {
         // Open Alert dialog :
         // 1) Mark/Unmark as 'Favorite' (!!!)
         // 2) Open in SoundCloud

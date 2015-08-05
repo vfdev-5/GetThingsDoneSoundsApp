@@ -6,12 +6,22 @@
     android:paddingTop="5dp"
     android:paddingBottom="5dp">
 
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="7"
+        android:id="@+id/ft_item_id"
+        android:layout_gravity="center_vertical"
+        android:singleLine="true"
+        android:gravity="left|top"
+        android:layout_weight="5" />
 
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1">
+        android:layout_weight="2">
 
         <TextView
             android:layout_width="fill_parent"
@@ -40,7 +50,7 @@
         android:text="1:15:23"
         android:id="@+id/ft_item_trackDuration"
         android:layout_gravity="center_vertical"
-        android:layout_weight="2"
+        android:layout_weight="4"
         android:singleLine="true"
         android:gravity="center" />
 

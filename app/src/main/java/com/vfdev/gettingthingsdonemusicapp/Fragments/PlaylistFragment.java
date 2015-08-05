@@ -163,7 +163,7 @@ public class PlaylistFragment extends BaseFragment implements
 
         TextView title = (TextView) view.findViewById(R.id.p_item_trackTitle);
         if (title != null) {
-            openDialogOnTrack(mAdapter.getItem(position));
+            openDialogOnTrack(mAdapter.getItem(position), TrackInfoDialog.PLAY_BUTTON);
         }
 
     }
@@ -222,7 +222,7 @@ public class PlaylistFragment extends BaseFragment implements
 
             TrackInfo t = getItem(position);
             h.title.setText(t.title);
-            h.tags.setText(t.tags);
+            h.tags.setText(t.tags.isEmpty() ? getString(R.string.trackinfo_dialog_notags) : t.tags);
             h.duration.setText(MusicPlayer.getDuration(t.duration));
 //            h.star.setImageDrawable(t.isStarred ? mStarOn : mStarOff);
             h.star.setImageDrawable(mREDao.idExists(t.id) ? mStarOn : mStarOff);

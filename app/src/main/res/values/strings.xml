@@ -43,9 +43,13 @@
     <string name="settings_default">Default</string>
     <string name="settings_default_tags">trance, Armin van Buuren, Dash Berlin, A State Of Trance</string>
 
+    <!-- TrackInfoDialog -->
+    <string name="tid_play">Play</string>
+    <string name="tid_delete">Remove</string>
+    <string name="tid_double_click">Click twice to remove track</string>
+
     <!-- TrackInfo -->
     <string name="trackinfo_dialog_notags">No tags</string>
-
 
     <!-- About -->
     <string name="about_dialog_title">About</string>

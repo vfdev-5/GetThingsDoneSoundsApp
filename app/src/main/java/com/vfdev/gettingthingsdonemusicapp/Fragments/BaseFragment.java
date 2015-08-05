@@ -3,9 +3,6 @@ package com.vfdev.gettingthingsdonemusicapp.Fragments;
 import android.app.Activity;
 import android.app.Fragment;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.j256.ormlite.android.apptools.OpenHelperManager;
@@ -54,10 +51,6 @@ public class BaseFragment extends Fragment {
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
         Timber.v("onCreate");
-        mMSHelper = MusicServiceHelper.getInstance();
-        EventBus.getDefault().register(this);
-        mDBHandler = getHelper();
-        mREDao = getHelper().getTrackInfoREDao();
     }
 
     // onCreateView
@@ -73,6 +66,11 @@ public class BaseFragment extends Fragment {
         super.onStart();
         Timber.v("onStart");
         mToast = Toast.makeText(getActivity().getApplicationContext(), "", Toast.LENGTH_LONG);
+        EventBus.getDefault().register(this);
+        mMSHelper = MusicServiceHelper.getInstance();
+        mDBHandler = getHelper();
+        mREDao = getHelper().getTrackInfoREDao();
+
     }
 
     // onResume
@@ -80,32 +78,36 @@ public class BaseFragment extends Fragment {
     @Override
     public void onPause() {
         Timber.v("onPause");
-        super.onPause();
         needRestoreUi = true;
+        super.onPause();
     }
 
     @Override
     public void onStop() {
         Timber.v("onStop");
-        super.onStop();
-    }
-
-    @Override
-    public void onDestroyView() {
-        Timber.v("onDestroy");
-        super.onDestroyView();
-    }
-
-    @Override
-    public void onDestroy() {
-        Timber.v("onDestroy");
+        // Prefer to remove event handler when Fragment is stopped
         EventBus.getDefault().unregister(this);
+        // remove all pointers to singletons
         mMSHelper = null;
         if (mDBHandler != null) {
             OpenHelperManager.releaseHelper();
             mDBHandler = null;
         }
         mREDao = null;
+
+
+        super.onStop();
+    }
+
+    @Override
+    public void onDestroyView() {
+        Timber.v("onDestroyView");
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onDestroy() {
+        Timber.v("onDestroy");
         super.onDestroy();
     }
 
@@ -148,12 +150,36 @@ public class BaseFragment extends Fragment {
         }
     }
 
-    protected void openDialogOnTrack(TrackInfo trackInfo) {
+    protected void openDialogOnTrack(final TrackInfo trackInfo, int flags) {
         // Open Alert dialog :
-        TrackInfoDialog dialog = new TrackInfoDialog(getActivity());
+        TrackInfoDialog dialog;
+        if (flags > 0) {
+            dialog = new TrackInfoDialog(getActivity(), flags, mToast);
+        } else {
+            dialog = new TrackInfoDialog(getActivity());
+        }
         dialog.setTrackInfo(trackInfo);
+        dialog.setOnPlayButtonListener(new TrackInfoDialog.OnPlayButtonListener() {
+            @Override
+            public void onClick() {
+                if (mMSHelper.isPlaying()) {
+                    mMSHelper.pause();
+                }
+                mMSHelper.clearPlaylist();
+                mMSHelper.getPlayer().addTrack(trackInfo);
+                mMSHelper.playNextTrack();
+            }
+        });
+        dialog.setOnRemoveButtonListener(new TrackInfoDialog.OnRemoveButtonListener() {
+            @Override
+            public void onClick() {
+                daoDeleteById(trackInfo.id);
+            }
+        });
         dialog.show();
     }
+
+
 
     protected DatabaseHelper getHelper() {
         if (mDBHandler == null) {
