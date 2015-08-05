@@ -16,12 +16,12 @@ This app is for those who need a music while working, walking, doing a sport or 
 - Go to the settings to change 'tags' of your music 
 
 <p>
-<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_1_v2.0.png" width="250"/>
-<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_3_v2.0.png" width="250"/>
-<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_4_v2.0.png" width="250"/>
+<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_1_v2.0.png" width="200"/>
+<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_3_v2.0.png" width="200"/>
+<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_4_v2.0.png" width="200"/>
 </p>
 <p>
-<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_5_v2.0.png" width="250"/>
-<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_6_v2.0.png" width="250"/>
-<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_7_v2.0.png" width="250"/>
+<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_5_v2.0.png" width="200"/>
+<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_6_v2.0.png" width="200"/>
+<img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_7_v2.0.png" width="200"/>
 </p>
