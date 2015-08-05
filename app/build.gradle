@@ -8,8 +8,8 @@ android {
         applicationId 'com.vfdev.gettingthingsdonemusic'
         minSdkVersion 16
         targetSdkVersion 16
-        versionCode 2
-        versionName "crepe"
+        versionCode 3
+        versionName "another pancake"
     }
     buildTypes {
         release {
