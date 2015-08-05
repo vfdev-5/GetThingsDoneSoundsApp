@@ -5,28 +5,35 @@ import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.ProgressDialog;
-import android.content.ComponentName;
+import android.content.SharedPreferences;
 import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import com.vfdev.gettingthingsdonemusicapp.core.AppDBHandler;
-import com.vfdev.gettingthingsdonemusicapp.core.SoundCloudHelper;
-
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.ButterKnife;
 import timber.log.Timber;
 
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+import com.vfdev.gettingthingsdonemusicapp.DB.DBTrackInfo;
+import com.vfdev.gettingthingsdonemusicapp.Fragments.FavoriteTracksFragment;
+import com.vfdev.gettingthingsdonemusicapp.Fragments.MainFragment;
+import com.vfdev.gettingthingsdonemusicapp.Fragments.PlaylistFragment;
+import com.vfdev.gettingthingsdonemusicapp.Dialogs.SettingsDialog;
+import com.vfdev.mimusicservicelib.MusicService;
+import com.vfdev.mimusicservicelib.MusicServiceHelper;
+import com.vfdev.mimusicservicelib.core.MusicPlayer;
+import com.vfdev.mimusicservicelib.core.SoundCloundProvider;
+import com.vfdev.mimusicservicelib.core.TrackInfo;
 
+import de.greenrobot.event.EventBus;
 
 /* TODO:
  1) Normal usage
@@ -47,6 +54,7 @@ import timber.log.Timber;
     1.9) Settings : configure retrieved styles by keywords (default: trance, electro)
         - replace search genres by tags:
         default tags : trance,electronic,armin,Dash Berlin,ASOT
+        - add option to search as query instead of tags
 
     ---- version 2.0
     2.0) View Pager : view1 = Main, view2 = List of played tracks, view3 = Favorite tracks
@@ -55,6 +63,8 @@ import timber.log.Timber;
     2.3) PlaylistFragment : tracklist : item = { track name/tags ; duration ; star }
         a) Item onClick : play track -> remove all track after
     2.4) Track Title onClick : AlertDialog : {Mark as favorite; Download to phone; Open in SoundCloud}
+
+    2.x) Show prev track button when starts to prepare next track -> can go to prev track if no network
 
 
  2) Abnormal usage
@@ -67,8 +77,6 @@ import timber.log.Timber;
  */
 
 public class MainActivity extends Activity implements
-        MusicService.OnErrorListener,
-        ServiceConnection,
         SettingsDialog.SettingsDialogCallback
 {
 
@@ -82,18 +90,11 @@ public class MainActivity extends Activity implements
     private PlaylistFragment mPlaylistFragment;
     private FavoriteTracksFragment mFavoriteTracksFragment;
 
-
-
-    // Service connection
-    private MusicService mService;
-    private boolean mBound = false;
+    // MusicService helper
+    private MusicServiceHelper mMSHelper;
 
     // Toast dialog
     private Toast mToast;
-
-    // Database handler
-    AppDBHandler mDBHandler;
-
 
     // ------- Activity methods
 
@@ -108,14 +109,22 @@ public class MainActivity extends Activity implements
         // set custom title :
         setTitle(R.string.main_activity_name);
 
+        // setup MusicServiceHelper
+        mMSHelper = MusicServiceHelper.getInstance().init(this, new SoundCloundProvider(), MainActivity.class);
+        mMSHelper.startMusicService();
+
+        // setup UIL
+        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this).build();
+        ImageLoader.getInstance().init(config);
+
+
+        // initialize some fragments (uses mMSHelper)
         setupPagerUI();
 
-//        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog = new ProgressDialog(this);
         mToast = Toast.makeText(getApplicationContext(), "", Toast.LENGTH_LONG);
 
-        setupDB();
-
-        startMusicService();
+        EventBus.getDefault().register(this);
 
     }
 
@@ -149,15 +158,9 @@ public class MainActivity extends Activity implements
     protected void onDestroy() {
         Timber.v("onDestroy");
 
-        // Unbind from the service
-        if (mBound) {
-            unbindService(this);
-            mBound = false;
-        }
-
-        // Close database connection
-        mDBHandler.close();
-
+        mMSHelper.release();
+        ImageLoader.getInstance().destroy();
+        EventBus.getDefault().unregister(this);
         super.onDestroy();
     }
 
@@ -191,37 +194,55 @@ public class MainActivity extends Activity implements
         return super.onOptionsItemSelected(item);
     }
 
+    // ----------- MusicServiceHelper.ReadyEvent
 
-    // ----------- Service connection
-
-    // Defines callbacks for service binding, passed to bindService()
-    @Override
-    public void onServiceConnected(ComponentName className, IBinder service) {
-        Timber.v("Main activity is connected to MusicService");
-
-        // We've bound to MusicService, cast the IBinder and get LocalService instance
-        MusicService.LocalBinder binder = (MusicService.LocalBinder) service;
-        mService = binder.getService();
-        mBound = true;
-        mService.setErrorListener(this);
-        mMainFragment.setService(mService);
-        mPlaylistFragment.setService(mService);
+    public void onEvent(MusicServiceHelper.ReadyEvent event) {
+        ArrayList<TrackInfo> playlist = mMSHelper.getPlaylist();
+        if (playlist.isEmpty()) {
+            // get tags from settings :
+            String query = getTags();
+            Timber.v("onReady -> setupTracks : " + query);
+            mMSHelper.setupTracks(query);
+        }
     }
 
-    @Override
-    public void onServiceDisconnected(ComponentName arg0) {
-        Timber.v("Main activity is disconnected from MusicService");
-        mBound = false;
-        mMainFragment.setService(null);
+    // --------- MusicPlayer.ErrorEvent & MusicService.ErrorEvent
+
+    public void onEvent(MusicPlayer.ErrorEvent event) {
+        Timber.v("onEvent : MusicPlayer.ErrorEvent : event.code=" + event.code);
+        if (event.code == MusicPlayer.ERROR_DATASOURCE ||
+                event.code == MusicPlayer.ERROR_APP ||
+                event.code == MusicPlayer.ERROR_NO_AUDIOFOCUS) {
+            Toast.makeText(this, R.string.app_err, Toast.LENGTH_SHORT).show();
+        }
     }
 
-    // --------- Music Service onError listener
-
-    @Override
-    public void onShowErrorMessage(String msg) {
-        Timber.v("onShowErrorMessage");
-        showMessage(msg);
+    public void onEvent(MusicService.ErrorEvent event) {
+        Timber.v("onEvent : MusicService.ErrorEvent : event.code=" + event.code);
+        if (event.code == MusicService.APP_ERR) {
+            Toast.makeText(this, "Ops, there is an application error", Toast.LENGTH_SHORT).show();
+        } else if (event.code == MusicService.NOTRACKS_ERR) {
+            Toast.makeText(this, "No tracks found", Toast.LENGTH_SHORT).show();
+        } else if (event.code == MusicService.CONNECTION_ERR) {
+            Toast.makeText(this, "Ops, internet connection problem", Toast.LENGTH_SHORT).show();
+        } else if (event.code == MusicService.QUERY_ERR) {
+            Toast.makeText(this, "There is a problem with your query", Toast.LENGTH_SHORT).show();
+        }
     }
+
+    // --------- FavoriteTracksFragment.OnPlayFavoriteTracksListener
+
+//    @Override
+    public void onPlay(List<DBTrackInfo> tracks) {
+        Timber.v("onPlay");
+        if (mMSHelper.getPlayer() != null) {
+            mMSHelper.getPlayer().clearTracks();
+            for (DBTrackInfo track : tracks) {
+                mMSHelper.getPlayer().addTrack(track.trackInfo);
+            }
+        }
+    }
+
 
     // --------- Other class methods
 
@@ -238,6 +259,7 @@ public class MainActivity extends Activity implements
     }
 
     private void setupPagerUI() {
+        Timber.v("setupPagerUI");
 
         // Create fragments:
         mMainFragment = new MainFragment();
@@ -263,32 +285,9 @@ public class MainActivity extends Activity implements
 
     }
 
-    private void setupDB() {
-        Timber.v("Setup DB");
-        mDBHandler = new AppDBHandler(this);
-
-        SoundCloudHelper.getInstance().setTags(mDBHandler.getTags());
-
-    }
-
-    private void startMusicService() {
-        // start music service -> service is independent
-        startService(new Intent(this, MusicService.class));
-        // Bind to the service
-        bindService(new Intent(this, MusicService.class), this, Context.BIND_AUTO_CREATE);
-    }
-
-    private void stopMusicService() {
-        if (mBound) {
-            unbindService(this);
-            mBound = false;
-        }
-        stopService(new Intent(MainActivity.this, MusicService.class));
-    }
-
     private void exit() {
         Timber.v("exit");
-        stopMusicService();
+        mMSHelper.stopMusicService();
         finish();
     }
 
@@ -303,23 +302,38 @@ public class MainActivity extends Activity implements
     }
 
     private void settings() {
-
         SettingsDialog dialog = new SettingsDialog(this);
-        dialog.setData(mDBHandler.getTags());
+        dialog.setData(getTags());
         dialog.show();
 
+    }
+
+    private String getTags() {
+        SharedPreferences prefs = getSharedPreferences("Tags",0);
+        return prefs.getString("Tags", getString(R.string.settings_default_tags));
+    }
+
+    private void writeTags(String tags) {
+        Timber.v("writeTags : " + tags);
+        // We need an Editor object to make preference changes.
+        // All objects are from android.context.Context
+        SharedPreferences prefs = getSharedPreferences("Tags", 0);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("Tags", tags);
+        // Commit the edits!
+        editor.commit();
     }
 
     private void setupNewTags(String tags) {
 
         if (tags.isEmpty()) return;
 
-        mDBHandler.setTags(tags);
+        writeTags(tags);
         Toast.makeText(this, getString(R.string.tags_updated), Toast.LENGTH_SHORT).show();
 
         // start retrieving tracks for new tags
-        SoundCloudHelper.getInstance().setTags(mDBHandler.getTags());
-
+        mMSHelper.clearPlaylist();
+        mMSHelper.setupTracks(tags);
     }
 
     // ----------- SettingsDialog.SettingsDialogCallback
