@@ -7,11 +7,36 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# Add any project specific keep options here:
-#-dontwarn butterknife.**
-#-dontwarn okio.**
-#-dontwarn java.util.zip.**
-#-dontnote java.util.zip.**
+# From http://jakewharton.github.io/butterknife/
+-keep class butterknife.** { *; }
+-dontwarn butterknife.internal.**
+-keep class **$$ViewBinder { *; }
+
+-keepclasseswithmembernames class * {
+    @butterknife.* <fields>;
+}
+
+-keepclasseswithmembernames class * {
+    @butterknife.* <methods>;
+}
+
+# From https://github.com/krschultz/android-proguard-snippets/blob/master/libraries/proguard-square-okhttp.pro
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class com.squareup.okhttp.** { *; }
+-keep interface com.squareup.okhttp.** { *; }
+-dontwarn com.squareup.okhttp.**
+
+# Okio
+-keep class sun.misc.Unsafe { *; }
+-dontwarn java.nio.file.*
+-dontwarn org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement
+-dontwarn okio.**
+
+## Project
+-keepclassmembers class ** {
+    public void onEvent*(***);
+}
 
 # http://proguard.sourceforge.net/index.html#/manual/examples.html
 #-keep public class * extends android.app.Application
