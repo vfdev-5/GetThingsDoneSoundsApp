@@ -35,46 +35,6 @@ import com.vfdev.mimusicservicelib.core.TrackInfo;
 
 import de.greenrobot.event.EventBus;
 
-/* TODO:
- 1) Normal usage
-
-    ---- version 1.0
-
-    1.1) Fetch track ids on genres = OK
-    1.2) Play/Pause a track = OK
-        1.2.1) when track is finished, play next track = OK
-    1.3) Play next/previous track = OK
-    1.4) Play on background -> Use a service = OK
-    1.5) Save track waveform in the service and do not reload from URL on activity UI restore = OK
-    1.6) Visual response on press next/prev track buttons = OK
-    1.7) Click on title -> open track in the browser = OK
-
-    ---- version 1.1
-    1.8) Random choice of track and do not repeat : check id in track history
-    1.9) Settings : configure retrieved styles by keywords (default: trance, electro)
-        - replace search genres by tags:
-        default tags : trance,electronic,armin,Dash Berlin,ASOT
-        - add option to search as query instead of tags
-
-    ---- version 2.0
-    2.0) View Pager : view1 = Main, view2 = List of played tracks, view3 = Favorite tracks
-    2.1) OK = Add local DB to store conf:
-    2.2) Download playing track
-    2.3) PlaylistFragment : tracklist : item = { track name/tags ; duration ; star }
-        a) Item onClick : play track -> remove all track after
-    2.4) Track Title onClick : AlertDialog : {Mark as favorite; Download to phone; Open in SoundCloud}
-
-    2.x) Show prev track button when starts to prepare next track -> can go to prev track if no network
-
-
- 2) Abnormal usage
-    2.1) No network
-
- 3) BUGS :
-
-    1) play track -> next -> back -> restore from notification
-
- */
 
 public class MainActivity extends Activity implements
         SettingsDialog.SettingsDialogCallback
