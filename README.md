@@ -1,5 +1,5 @@
 # GettingThingsDoneMusicApp
-Android app inspired by the concept of 'GetWorkDoneMusic' site (www.getworkdonemusic.com)
+Android app inspired by the concept of <a href="http://www.getworkdonemusic.com">GetWorkDoneMusic</a>
 
 <img src="https://github.com/vfdev-5/GetThingsDoneSoundsApp/blob/master/screenshots/v2.0/Screenshot_2_v2.0.png" width="250"/>
 
