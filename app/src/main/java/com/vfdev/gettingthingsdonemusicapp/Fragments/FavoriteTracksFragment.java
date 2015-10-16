@@ -14,6 +14,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.j256.ormlite.android.apptools.OpenHelperManager;
+import com.vfdev.gettingthingsdonemusicapp.Animations.DefaultAnimations;
 import com.vfdev.gettingthingsdonemusicapp.DB.DBTrackInfo;
 import com.vfdev.gettingthingsdonemusicapp.Dialogs.TrackInfoDialog;
 import com.vfdev.gettingthingsdonemusicapp.R;
@@ -41,7 +42,8 @@ public class FavoriteTracksFragment extends BaseFragment implements
     @InjectView(R.id.playTracks)
     protected TextView mPlayTracks;
 
-    TranslateAnimation mAnimation;
+    // Animations
+    DefaultAnimations mAnimations = new DefaultAnimations();
 
 //    private Drawable mCannotDownload;
 //    private Drawable mNotDownloaded;
@@ -62,13 +64,6 @@ public class FavoriteTracksFragment extends BaseFragment implements
         Timber.v("onAttach");
 
         mAdapter = new FavoriteTracksAdapter(activity);
-
-        // setup button animation
-        mAnimation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0,
-                Animation.RELATIVE_TO_SELF, 0,
-                Animation.RELATIVE_TO_SELF, 0,
-                Animation.RELATIVE_TO_SELF, 0.05f);
-        mAnimation.setDuration(150);
     }
 
     @Override
@@ -156,7 +151,7 @@ public class FavoriteTracksFragment extends BaseFragment implements
     @OnClick(R.id.playTracks)
     public void onPlayTracks(View view) {
         Timber.v("Play favorite tracks");
-        mPlayTracks.startAnimation(mAnimation);
+        mPlayTracks.startAnimation(mAnimations.getButtonAnimation());
         playFavoriteTracks(mREDao.queryForAll());
         showMessage(getString(R.string.ftf_play_tracks_OK));
     }

@@ -7,14 +7,12 @@
 
     <TextView
         android:layout_width="fill_parent"
-        android:layout_height="160dp"
+        android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="@string/about_text"
         android:id="@+id/about_text"
-        android:layout_gravity="center_horizontal"
         android:autoLink="web"
-        android:textColor="@android:color/white"
-        android:gravity="center_horizontal" />
+        android:textColor="@android:color/white" />
 
     <ImageView
         android:layout_width="fill_parent"
@@ -27,7 +25,7 @@
         android:layout_width="fill_parent"
         android:layout_height="80dp"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="@string/thx_sound_cloud"
+        android:text="@string/thx"
         android:id="@+id/thxSoundCloud"
         android:layout_gravity="center_horizontal"
         android:gravity="center"

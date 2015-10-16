@@ -21,6 +21,7 @@ import android.widget.TextView;
 
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
+import com.vfdev.gettingthingsdonemusicapp.Animations.DefaultAnimations;
 import com.vfdev.gettingthingsdonemusicapp.DB.DBTrackInfo;
 import com.vfdev.gettingthingsdonemusicapp.R;
 import com.vfdev.gettingthingsdonemusicapp.WaveformView;
@@ -55,7 +56,7 @@ public class MainFragment extends BaseFragment
     private Drawable mPauseButtonDrawable;
 
     // Button animation (next/prev track)
-    TranslateAnimation mAnimation;
+    DefaultAnimations mAnimations = new DefaultAnimations();
 
     @InjectView(R.id.trackTitle)
     protected TextView mTrackTitle;
@@ -99,13 +100,6 @@ public class MainFragment extends BaseFragment
         // initialize a timer : counter of 10 hours by one second
         // it can be canceled to pause duration counter or restarted
         mTimer = new _CountDownTimer(1000*60*60*10, 1000);
-
-        // setup button animation
-        mAnimation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0,
-                Animation.RELATIVE_TO_SELF, 0,
-                Animation.RELATIVE_TO_SELF, 0,
-                Animation.RELATIVE_TO_SELF, 0.05f);
-        mAnimation.setDuration(150);
 
         needRestoreUi = true;
 
@@ -168,7 +162,7 @@ public class MainFragment extends BaseFragment
         Timber.v("onNextTrackButtonClicked");
 
         // animate button
-        mNextTrackButton.startAnimation(mAnimation);
+        mNextTrackButton.startAnimation(mAnimations.getButtonAnimation());
 
         if (mMSHelper.playNextTrack()) {
             if (!mMSHelper.isPlaying()) {
@@ -187,7 +181,7 @@ public class MainFragment extends BaseFragment
         Timber.v("onPrevTrackButtonClicked");
 
         // animate button
-        mPrevTrackButton.startAnimation(mAnimation);
+        mPrevTrackButton.startAnimation(mAnimations.getButtonAnimation());
 
         if (mMSHelper.playPrevTrack()) {
             if (!mMSHelper.isPlaying()) {
@@ -339,7 +333,6 @@ public class MainFragment extends BaseFragment
 
     private void adjustTrackDurationInfo() {
         if (mMSHelper.getPlayer() != null) {
-            Timber.i("--- adjustTrackDurationInfo");
             int duration = mMSHelper.getPlayer().getTrackDuration();
             int currentPosition = mMSHelper.getPlayer().getTrackCurrentPosition();
             int remaining = duration - currentPosition;

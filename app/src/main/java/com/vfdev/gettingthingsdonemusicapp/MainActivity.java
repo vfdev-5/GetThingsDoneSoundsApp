@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.ProgressDialog;
-import android.content.SharedPreferences;
 import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 
@@ -13,9 +12,6 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import butterknife.ButterKnife;
 import timber.log.Timber;
@@ -27,17 +23,23 @@ import com.vfdev.gettingthingsdonemusicapp.Fragments.FavoriteTracksFragment;
 import com.vfdev.gettingthingsdonemusicapp.Fragments.MainFragment;
 import com.vfdev.gettingthingsdonemusicapp.Fragments.PlaylistFragment;
 import com.vfdev.gettingthingsdonemusicapp.Dialogs.SettingsDialog;
+import com.vfdev.gettingthingsdonemusicapp.Fragments.SettingsFragment;
 import com.vfdev.mimusicservicelib.MusicService;
 import com.vfdev.mimusicservicelib.MusicServiceHelper;
 import com.vfdev.mimusicservicelib.core.MusicPlayer;
-import com.vfdev.mimusicservicelib.core.SoundCloundProvider;
+import com.vfdev.mimusicservicelib.core.ProviderQuery;
 import com.vfdev.mimusicservicelib.core.TrackInfo;
+import com.vfdev.mimusicservicelib.core.TrackInfoProvider;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import de.greenrobot.event.EventBus;
 
 
-public class MainActivity extends Activity implements
-        SettingsDialog.SettingsDialogCallback
+public class MainActivity extends Activity
+//        implements
+//        SettingsDialog.SettingsDialogCallback
 {
 
     // UI
@@ -49,6 +51,7 @@ public class MainActivity extends Activity implements
     private MainFragment mMainFragment;
     private PlaylistFragment mPlaylistFragment;
     private FavoriteTracksFragment mFavoriteTracksFragment;
+    private SettingsFragment mSettingsFragment;
 
     // MusicService helper
     private MusicServiceHelper mMSHelper;
@@ -70,7 +73,7 @@ public class MainActivity extends Activity implements
         setTitle(R.string.main_activity_name);
 
         // setup MusicServiceHelper
-        mMSHelper = MusicServiceHelper.getInstance().init(this, new SoundCloundProvider(), MainActivity.class);
+        setupMSHelper();
         mMSHelper.startMusicService();
 
         // setup UIL
@@ -146,9 +149,9 @@ public class MainActivity extends Activity implements
         } else if (id == R.id.action_exit) {
             exit();
             return true;
-        } else if (id == R.id.action_settings) {
-            settings();
-            return true;
+//        } else if (id == R.id.action_settings) {
+//            settings();
+//            return true;
         }
 
         return super.onOptionsItemSelected(item);
@@ -160,7 +163,7 @@ public class MainActivity extends Activity implements
         ArrayList<TrackInfo> playlist = mMSHelper.getPlaylist();
         if (playlist.isEmpty()) {
             // get tags from settings :
-            String query = getTags();
+            ProviderQuery query = SettingsFragment.getQuery(this);
             Timber.v("onReady -> setupTracks : " + query);
             mMSHelper.setupTracks(query);
         }
@@ -218,6 +221,17 @@ public class MainActivity extends Activity implements
         mProgressDialog.show();
     }
 
+    private void setupMSHelper() {
+        String[] providers = SettingsFragment.getProviderNames(this);
+        TrackInfoProvider[] trackInfoProvider = new TrackInfoProvider[providers.length];
+        for (int i=0; i<providers.length;i++) {
+            trackInfoProvider[i] = MusicServiceHelper.createProvider(providers[i]);
+        }
+        mMSHelper = MusicServiceHelper.getInstance().init(this,
+                trackInfoProvider,
+                MainActivity.class);
+    }
+
     private void setupPagerUI() {
         Timber.v("setupPagerUI");
 
@@ -225,9 +239,11 @@ public class MainActivity extends Activity implements
         mMainFragment = new MainFragment();
         mPlaylistFragment = new PlaylistFragment();
         mFavoriteTracksFragment = new FavoriteTracksFragment();
+        mSettingsFragment = new SettingsFragment();
 
         // Create pager adapter
         mPagerAdapter = new PagerAdapter(getFragmentManager());
+        mPagerAdapter.appendFragment(mSettingsFragment);
         mPagerAdapter.appendFragment(mMainFragment);
         mPagerAdapter.appendFragment(mPlaylistFragment);
         mPagerAdapter.appendFragment(mFavoriteTracksFragment);
@@ -235,6 +251,7 @@ public class MainActivity extends Activity implements
         // Create and set up the ViewPager .
         mViewPager = (ViewPager) findViewById(R.id.pager);
         mViewPager.setAdapter(mPagerAdapter);
+        mViewPager.setCurrentItem(1);
 
         mViewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
@@ -261,52 +278,64 @@ public class MainActivity extends Activity implements
 
     }
 
-    private void settings() {
-        SettingsDialog dialog = new SettingsDialog(this);
-        dialog.setData(getTags());
-        dialog.show();
+//    private void settings() {
+//        SettingsDialog dialog = new SettingsDialog(this);
+//        dialog.setSettings(SettingsFragment.getTags(this), SettingsFragment.getProviderNames(this));
+//        dialog.show();
+//    }
 
-    }
+//    private void writeProviders(String[] providers ) {
+//        StringBuilder builder = new StringBuilder();
+//        for (String p : providers) {
+//            builder.append(p);
+//            builder.append(";");
+//        }
+//        builder.deleteCharAt(builder.length()-1);
+//        String result = builder.toString();
+//        Timber.v("writeProvider : " + result);
+//
+//        // We need an Editor object to make preference changes.
+//        SharedPreferences prefs = getSharedPreferences("GTDM", 0);
+//        SharedPreferences.Editor editor = prefs.edit();
+//        editor.putString("providers", result);
+//        // Commit the edits!
+//        editor.apply();
+//    }
 
-    private String getTags() {
-        SharedPreferences prefs = getSharedPreferences("Tags",0);
-        return prefs.getString("Tags", getString(R.string.settings_default_tags));
-    }
+//    private void writeTags(String tags) {
+//        Timber.v("writeTags : " + tags);
+//        // We need an Editor object to make preference changes.
+//        // All objects are from android.context.Context
+//        SharedPreferences prefs = getSharedPreferences("GTDM", 0);
+//        SharedPreferences.Editor editor = prefs.edit();
+//        editor.putString("tags", tags);
+//        // Commit the edits!
+//        editor.apply();
+//    }
 
-    private void writeTags(String tags) {
-        Timber.v("writeTags : " + tags);
-        // We need an Editor object to make preference changes.
-        // All objects are from android.context.Context
-        SharedPreferences prefs = getSharedPreferences("Tags", 0);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString("Tags", tags);
-        // Commit the edits!
-        editor.commit();
-    }
-
-    private void setupNewTags(String tags) {
-
-        if (tags.isEmpty()) return;
-
-        writeTags(tags);
-        Toast.makeText(this, getString(R.string.tags_updated), Toast.LENGTH_SHORT).show();
-
-        // start retrieving tracks for new tags
-        mMSHelper.clearPlaylist();
-        mMSHelper.setupTracks(tags);
-    }
+//    private void setupNewSettings(String tags, String [] newProviders) {
+//        if (tags.isEmpty()) return;
+//        writeProviders(newProviders);
+//        writeTags(tags);
+//        Toast.makeText(this, getString(R.string.settings_updated), Toast.LENGTH_SHORT).show();
+//
+//        // start retrieving tracks for new tags
+////        mMSHelper.
+//        mMSHelper.clearPlaylist();
+//        mMSHelper.setupTracks(tags);
+//    }
 
     // ----------- SettingsDialog.SettingsDialogCallback
 
-    @Override
-    public void onUpdateData(String newTags) {
-        setupNewTags(newTags);
-    }
+//    @Override
+//    public void onUpdate(String newTags, String [] newProviders) {
+//        setupNewSettings(newTags, newProviders);
+//    }
 
-    @Override
-    public void onResetDefault() {
-        setupNewTags(getString(R.string.settings_default_tags));
-    }
+//    @Override
+//    public void onReset() {
+//        setupNewSettings(getString(R.string.settings_default_tags));
+//    }
 
     // ------------ PagerAdapter
 

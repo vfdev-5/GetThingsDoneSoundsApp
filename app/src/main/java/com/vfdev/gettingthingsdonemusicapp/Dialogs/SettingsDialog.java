@@ -3,6 +3,7 @@ package com.vfdev.gettingthingsdonemusicapp.Dialogs;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -16,7 +17,10 @@ public class SettingsDialog implements DialogInterface.OnClickListener {
     SettingsDialogCallback mCallback;
     AlertDialog mDialog;
     EditText mTags;
-    String mData;
+    CheckBox mSoundCloudCB;
+    CheckBox mHearThisAtCB;
+    String mTagsStr;
+    String[] mProviders;
 
     public SettingsDialog(Activity activity) {
 
@@ -32,14 +36,31 @@ public class SettingsDialog implements DialogInterface.OnClickListener {
 
     }
 
-    public void setData(String data) {
-        mData = data;
+    public void setSettings(String tags, String[] providers) {
+        mTagsStr = tags;
+        mProviders = providers;
     }
 
     public void show() {
         mDialog.show();
         mTags = (EditText) mDialog.findViewById(R.id.tags);
-        mTags.setText(mData);
+        mTags.setText(mTagsStr);
+
+        mSoundCloudCB = (CheckBox) mDialog.findViewById(R.id.chk_soundcloud);
+        mHearThisAtCB = (CheckBox) mDialog.findViewById(R.id.chk_hearthisat);
+
+        mSoundCloudCB.setChecked(false);
+        mHearThisAtCB.setChecked(false);
+        for (String e : mProviders) {
+            if (e.equalsIgnoreCase("SoundCloud")) {
+                mSoundCloudCB.setChecked(true);
+                continue;
+            }
+            if (e.equalsIgnoreCase("HearThisAt")) {
+                mHearThisAtCB.setChecked(true);
+            }
+        }
+
     }
 
 
@@ -48,12 +69,17 @@ public class SettingsDialog implements DialogInterface.OnClickListener {
 
         if (id == DialogInterface.BUTTON_POSITIVE) {
             String tags = mTags.getText().toString();
+
+            int length = 2;
+            String [] providers = new String[2];
+
+
             if (mCallback != null) {
-                mCallback.onUpdateData(tags);
+                mCallback.onUpdate(tags, providers);
             }
         } else if (id == DialogInterface.BUTTON_NEUTRAL) {
             if (mCallback != null) {
-                mCallback.onResetDefault();
+                mCallback.onReset();
             }
         }
 
@@ -61,8 +87,8 @@ public class SettingsDialog implements DialogInterface.OnClickListener {
 
     // -------- Callback to Activity
     public interface SettingsDialogCallback {
-        public void onUpdateData(String data);
-        public void onResetDefault();
+        public void onUpdate(String tags, String [] providers);
+        public void onReset();
     }
 
 

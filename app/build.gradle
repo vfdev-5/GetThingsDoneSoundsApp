@@ -15,7 +15,7 @@ android {
         }
     }
     compileSdkVersion 22
-    buildToolsVersion '22.0.1'
+    buildToolsVersion '23.0.1'
     defaultConfig {
         applicationId 'com.vfdev.gettingthingsdonemusic'
         minSdkVersion 16
@@ -50,6 +50,6 @@ dependencies {
     compile 'com.j256.ormlite:ormlite-android:4.48'
     compile 'com.j256.ormlite:ormlite-core:4.48'
     compile 'de.greenrobot:eventbus:2.4.0'
-    //    androidTestCompile 'com.jayway.android.robotium:robotium-solo:5.2.1'
-    //    androidTestCompile 'com.squareup.assertj:assertj-android:1.0.0'
+    androidTestCompile 'com.jayway.android.robotium:robotium-solo:5.2.1'
+//    androidTestCompile 'com.squareup.assertj:assertj-android:1.0.0'
 }

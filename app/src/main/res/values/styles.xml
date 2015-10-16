@@ -6,6 +6,8 @@
     <color name="trackTitleColor">#ffdddddd</color>
     <color name="progressColor">#990075ff</color>
     <color name="buttonColor">#00000000</color>
+    <color name="transparentColor1">#c8000000</color>
+    <color name="transparentColor2">#d8000000</color>
 
     <style name="Theme.GettingThingsDoneMusic" parent="@android:style/Theme.Holo">
 

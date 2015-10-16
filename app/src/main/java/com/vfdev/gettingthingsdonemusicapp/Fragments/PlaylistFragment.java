@@ -121,9 +121,7 @@ public class PlaylistFragment extends BaseFragment implements
 
         if (event.state == MusicPlayer.State.Playing) {
             Timber.v("onUpdate");
-//            if (mAdapter != null) {
             fillPlaylist(mMSHelper.getTracksHistory());
-//            }
         }
     }
 
@@ -176,7 +174,6 @@ public class PlaylistFragment extends BaseFragment implements
             star.setImageDrawable(mStarOff);
         } else if (star.getDrawable() == mStarOff) {
             // add as favorite:
-//            uTrack.isStarred = true;
             daoCreate(new DBTrackInfo(uTrack));
             star.setImageDrawable(mStarOn);
         }
@@ -224,7 +221,6 @@ public class PlaylistFragment extends BaseFragment implements
             h.title.setText(t.title);
             h.tags.setText(t.tags.isEmpty() ? getString(R.string.trackinfo_dialog_notags) : t.tags);
             h.duration.setText(MusicPlayer.getDuration(t.duration));
-//            h.star.setImageDrawable(t.isStarred ? mStarOn : mStarOff);
             h.star.setImageDrawable(mREDao.idExists(t.id) ? mStarOn : mStarOff);
 
             return convertView;

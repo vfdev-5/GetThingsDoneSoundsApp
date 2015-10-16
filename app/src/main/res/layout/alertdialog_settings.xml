@@ -1,23 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:weightSum="1">
+    android:layout_gravity="center_horizontal">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="@string/settings_dialog_tags"
-        android:id="@+id/title" />
-
-    <EditText
+    <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:id="@+id/tags"
-        android:text="@string/settings_default_tags"
-        android:layout_weight="0"
-        android:selectAllOnFocus="false"
-        android:gravity="top|left"
-        android:inputType="textMultiLine"/>
-</LinearLayout>
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="@string/settings_dialog_tags"
+            android:id="@+id/title" />
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:id="@+id/tags"
+            android:text="@string/settings_default_tags"
+            android:selectAllOnFocus="false"
+            android:gravity="top|left"
+            android:inputType="textMultiLine"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="@string/settings_providers"
+            android:id="@+id/textView" />
+
+        <RelativeLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_margin="5dp">
+
+            <CheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/chk_soundcloud"
+                android:checked="true"
+                android:layout_gravity="center"
+                android:background="@drawable/soundcloud"
+                android:gravity="left|top"
+                android:layout_weight="1"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentLeft="true" />
+
+            <CheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:id="@+id/chk_hearthisat"
+                android:checked="true"
+                android:layout_gravity="center"
+                android:background="@drawable/hearthisat"
+                android:gravity="left|top"
+                android:layout_weight="1"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentRight="true" />
+
+        </RelativeLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="@string/settings_track_duration"
+            android:id="@+id/textView2" />
+
+        <!--<Spinner-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:id="@+id/spinner"-->
+        <!--android:spinnerMode="dropdown" />-->
+
+
+    </LinearLayout>
+
+</ScrollView>
