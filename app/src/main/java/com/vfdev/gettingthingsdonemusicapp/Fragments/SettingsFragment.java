@@ -26,6 +26,7 @@ import android.widget.Toast;
 import com.vfdev.gettingthingsdonemusicapp.Animations.DefaultAnimations;
 import com.vfdev.gettingthingsdonemusicapp.R;
 import com.vfdev.mimusicservicelib.MusicServiceHelper;
+import com.vfdev.mimusicservicelib.core.ProviderMetaInfo;
 import com.vfdev.mimusicservicelib.core.ProviderQuery;
 
 import java.util.Arrays;
@@ -282,13 +283,13 @@ public class SettingsFragment extends Fragment implements
     }
 
     static public String[] getProviderNames(Context context) {
-        List<Pair<String, Integer>> allProvidersInfo = MusicServiceHelper.allProvidersInfo();
+        List<ProviderMetaInfo> allProvidersInfo = MusicServiceHelper.availableProviders();
         int selectedProviders = getProviders(context);
         String [] output = new String[allProvidersInfo.size()];
         if (selectedProviders == -1) {
             int count = 0;
-            for (Pair<String,Integer> e : allProvidersInfo) {
-                output[count] = e.first;
+            for (ProviderMetaInfo p : allProvidersInfo) {
+                output[count] = p.name;
                 count++;
             }
             return output;
@@ -298,7 +299,7 @@ public class SettingsFragment extends Fragment implements
         int count = 0;
         for (;count<output.length;count++,i*=2) {
             if ((selectedProviders & i) == i) { // bitwise compare with count-th provider
-                output[j] = allProvidersInfo.get(count).first;
+                output[j] = allProvidersInfo.get(count).name;
                 j++;
             }
         }
@@ -404,7 +405,7 @@ public class SettingsFragment extends Fragment implements
         mTagsText.setOnEditorActionListener(this);
 
         // setup providers view
-        mProvidersAdapter = new ProvidersAdapter(MusicServiceHelper.allProvidersInfo());
+        mProvidersAdapter = new ProvidersAdapter(MusicServiceHelper.availableProviders());
         mProvidersGridView.setAdapter(mProvidersAdapter);
 
     }
@@ -424,11 +425,11 @@ public class SettingsFragment extends Fragment implements
             implements View.OnClickListener
     {
         LayoutInflater inflater = getActivity().getLayoutInflater();
-        private List<Pair<String, Integer>> available;
+        private List<ProviderMetaInfo> available;
         private boolean[] selectedItems;
 
         //Constructor to initialize values
-        public ProvidersAdapter(List<Pair<String, Integer>> available) {
+        public ProvidersAdapter(List<ProviderMetaInfo> available) {
             this.available = available;
             selectedItems = new boolean[this.available.size()]; // Initialized to false by default
         }
@@ -496,7 +497,7 @@ public class SettingsFragment extends Fragment implements
                 convertView.setTag(h);
                 h.checkBox.setOnClickListener(this);
                 h.icon.setTag(h.checkBox);
-                h.icon.setImageResource(available.get(position).second);
+                h.icon.setImageResource(available.get(position).drawable);
                 h.icon.setOnClickListener(this);
             } else {
                 h = (ViewHolder) convertView.getTag();
@@ -528,10 +529,10 @@ public class SettingsFragment extends Fragment implements
             }
 
             selectedItems[position] = cb.isChecked();
-            String providerName = available.get(position).first;
+            String providerName = available.get(position).name;
             Timber.v("Provider \'" + providerName + "\' is selected : " + selectedItems[position]);
             if (selectedItems[position]) {
-                mMSHelper.addTrackInfoProvider(MusicServiceHelper.createProvider(providerName));
+                mMSHelper.addTrackInfoProvider(providerName);
             } else {
                 mMSHelper.removeTrackInfoProvider(providerName);
             }

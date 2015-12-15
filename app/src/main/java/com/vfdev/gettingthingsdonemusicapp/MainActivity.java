@@ -253,7 +253,7 @@ public class MainActivity extends Activity
         mViewPager.setAdapter(mPagerAdapter);
         mViewPager.setCurrentItem(1);
 
-        mViewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+        mViewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
             public void onPageSelected(int position) {
                 Timber.v("onPageSelected : " + String.valueOf(position));
